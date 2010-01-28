@@ -57,6 +57,9 @@ endef
 #   USE WITH EVAL
 #
 define ADD_TARGET_RULE
+    # Add target to ALL only if we're building it.
+    all: ${1}
+
     ifeq "$$(suffix ${1})" ".a"
         # Add a target for creating a static library.
         ${1}: $${${1}_OBJS}
@@ -173,7 +176,6 @@ define INCLUDE_SUBMAKEFILE
         # This makefile defined a new target. Target variables defined by this
         # makefile apply to this new target. Initialize the target's variables.
         TGT := $$(strip $${TARGET_DIR}/$${TARGET})
-        ALL_TGTS += $${TGT}
         $${TGT}: TGT_LDFLAGS := $${TGT_LDFLAGS}
         $${TGT}: TGT_LDLIBS := $${TGT_LDLIBS}
         $${TGT}: TGT_LINKER := $${TGT_LINKER}
@@ -234,8 +236,24 @@ define INCLUDE_SUBMAKEFILE
                          $$(call QUALIFY_PATH,$${DIR},$${MK})))))
     endif
 
+
     # Reset the "current" target to it's previous value.
     TGT_STACK := $$(call POP,$${TGT_STACK})
+
+    # If we're about to change targets, create the rules
+    ifneq "$${TGT}" "$$(call PEEK,$${TGT_STACK})"
+       ALL_TGTS += $${TGT}
+
+       # add rules to build the target
+       $$(eval $$(call ADD_TARGET_RULE,$${TGT}))
+
+       # add rules to clean the output files
+       $$(eval $$(call ADD_CLEAN_RULE,$${TGT}))
+
+       # include the dependency files of the target
+       $$(eval -include $${$${TGT}_DEPS})
+    endif
+
     TGT := $$(call PEEK,$${TGT_STACK})
 
     # Reset the "current" directory to it's previous value.
@@ -287,6 +305,9 @@ DIR_STACK :=
 INCDIRS :=
 TGT_STACK :=
 
+# Ensure that these are defined as PHONY before anything else happens
+.PHONY: clean all
+
 # Allow subdirectories to have a "Makefile" that contains nothing more
 # than "include ../../../../boiler.mk".  If we notice that the current
 # directory doesn't have a "main.mk" file, we walk back up the
@@ -311,7 +332,6 @@ _RELATIVE=$(subst ${_ROOT}/,,${PWD}/)
 #  We're in a subdirectory, go back up to the root, and re-build
 #  everything from there.
 #
-.PHONY: clean all
 all:
 	@$(MAKE) -C ${_ROOT} SUBDIR=${_RELATIVE}
 
@@ -327,15 +347,6 @@ $(eval $(call INCLUDE_SUBMAKEFILE,${MAIN_MK}))
 DEFS := $(addprefix -D,${DEFS})
 INCDIRS := $(addprefix -I,$(call CANONICAL_PATH,${INCDIRS}))
 
-# Define the "all" target (which simply builds all user-defined targets) as the
-# default goal.
-.PHONY: all
-all: ${ALL_TGTS}
-
-# Add a new target rule for each user-defined target.
-$(foreach TGT,${ALL_TGTS},\
-  $(eval $(call ADD_TARGET_RULE,${TGT})))
-
 # Add pattern rule(s) for creating compiled object code from C source.
 $(foreach EXT,${C_SRC_EXTS},\
   $(eval $(call ADD_OBJECT_RULE,${EXT},$${COMPILE_C_CMDS})))
@@ -344,12 +355,4 @@ $(foreach EXT,${C_SRC_EXTS},\
 $(foreach EXT,${CXX_SRC_EXTS},\
   $(eval $(call ADD_OBJECT_RULE,${EXT},$${COMPILE_CXX_CMDS})))
 
-# Add "clean" rules to remove all build-generated files.
-.PHONY: clean
-$(foreach TGT,${ALL_TGTS},\
-  $(eval $(call ADD_CLEAN_RULE,${TGT})))
-
-# Include generated rules that define additional (header) dependencies.
-$(foreach TGT,${ALL_TGTS},\
-  $(eval -include ${${TGT}_DEPS}))
 endif
