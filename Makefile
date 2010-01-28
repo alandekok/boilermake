@@ -242,16 +242,22 @@ define INCLUDE_SUBMAKEFILE
 
     # If we're about to change targets, create the rules
     ifneq "$${TGT}" "$$(call PEEK,$${TGT_STACK})"
-       ALL_TGTS += $${TGT}
+        # If we're building in the root, DIR==DIR, and we add the target.
+        # if we're building an a subdirectory, and delete/add of SUBDIR
+        # to DIR==DIR, then we're building in the RIGHT subdirectory.
+        # Add all of the targets in the subdirectory.
+        ifeq "$${DIR}" "$${SUBDIR}$$(subst $${SUBDIR},,$${DIR})"
+            ALL_TGTS += $${TGT}
 
-       # add rules to build the target
-       $$(eval $$(call ADD_TARGET_RULE,$${TGT}))
+            # add rules to build the target
+            $$(eval $$(call ADD_TARGET_RULE,$${TGT}))
 
-       # add rules to clean the output files
-       $$(eval $$(call ADD_CLEAN_RULE,$${TGT}))
+            # add rules to clean the output files
+            $$(eval $$(call ADD_CLEAN_RULE,$${TGT}))
 
-       # include the dependency files of the target
-       $$(eval -include $${$${TGT}_DEPS})
+            # include the dependency files of the target
+            $$(eval -include $${$${TGT}_DEPS})
+        endif
     endif
 
     TGT := $$(call PEEK,$${TGT_STACK})
@@ -325,7 +331,7 @@ ifeq (${_ROOT},)
 $(error Failed to find a top-level "main.mk" file)
 endif
 
-_RELATIVE=$(subst ${_ROOT}/,,${PWD}/)
+_RELATIVE=$(subst ${_ROOT}/,,${PWD})
 
 
 #
