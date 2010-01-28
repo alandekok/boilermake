@@ -287,9 +287,41 @@ DIR_STACK :=
 INCDIRS :=
 TGT_STACK :=
 
+# Allow subdirectories to have a "Makefile" that contains nothing more
+# than "include ../../../../boiler.mk".  If we notice that the current
+# directory doesn't have a "main.mk" file, we walk back up the
+# directory tree until we find one.
+#
+MAIN_MK := main.mk
+ifeq ($(wildcard ${MAIN_MK}),)
+_sp :=
+_sp +=
+_walk = $(if $1,$(wildcard /$(subst $(_sp),/,$1)/$2) $(call _walk,$(wordlist 2,$(words $1),x $1),$2))
+_find = $(firstword $(call _walk,$(strip $(subst /, ,$1)),$2))
+_ROOT := $(patsubst %/${MAIN_MK},%,$(call _find,$(CURDIR),${MAIN_MK}))
+
+ifeq (${_ROOT},)
+$(error Failed to find a top-level "main.mk" file)
+endif
+
+_RELATIVE=$(subst ${_ROOT}/,,${PWD}/)
+
+
+#
+#  We're in a subdirectory, go back up to the root, and re-build
+#  everything from there.
+#
+.PHONY: clean all
+all:
+	@$(MAKE) -C ${_ROOT} SUBDIR=${_RELATIVE}
+
+clean:
+	@$(MAKE) -C ${_ROOT} SUBDIR=${_RELATIVE} clean
+else
+
 # Include the main user-supplied submakefile. This also recursively includes
 # all other user-supplied submakefiles.
-$(eval $(call INCLUDE_SUBMAKEFILE,main.mk))
+$(eval $(call INCLUDE_SUBMAKEFILE,${MAIN_MK}))
 
 # Perform post-processing on global variables as needed.
 DEFS := $(addprefix -D,${DEFS})
@@ -320,3 +352,4 @@ $(foreach TGT,${ALL_TGTS},\
 # Include generated rules that define additional (header) dependencies.
 $(foreach TGT,${ALL_TGTS},\
   $(eval -include ${${TGT}_DEPS}))
+endif
