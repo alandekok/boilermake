@@ -57,9 +57,6 @@ endef
 #   USE WITH EVAL
 #
 define ADD_TARGET_RULE
-    # Add target to ALL only if we're building it.
-    all: ${1}
-
     ifeq "$$(suffix ${1})" ".a"
         # Add a target for creating a static library.
         ${1}: $${${1}_OBJS}
@@ -245,19 +242,29 @@ define INCLUDE_SUBMAKEFILE
         # If we're building in the root, DIR==DIR, and we add the target.
         # if we're building an a subdirectory, and delete/add of SUBDIR
         # to DIR==DIR, then we're building in the RIGHT subdirectory.
-        # Add all of the targets in the subdirectory.
+        #
+        # Building in a subdirectory means building ONLY the targets
+        # in that directory, BUT also building their dependencies
+        # It also means cleaning ONLY the targets in the subdirectory.
+        #
         ifeq "$${DIR}" "$${SUBDIR}$$(subst $${SUBDIR},,$${DIR})"
             ALL_TGTS += $${TGT}
 
-            # add rules to build the target
-            $$(eval $$(call ADD_TARGET_RULE,$${TGT}))
+            # Add the target to the default list of targets to be made
+            all: $${TGT}
 
             # add rules to clean the output files
             $$(eval $$(call ADD_CLEAN_RULE,$${TGT}))
-
-            # include the dependency files of the target
-            $$(eval -include $${$${TGT}_DEPS})
         endif
+
+        # For dependency tracking to work, we still add all targets
+        # to the build system.
+
+        # add rules to build the target
+        $$(eval $$(call ADD_TARGET_RULE,$${TGT}))
+
+        # include the dependency files of the target
+        $$(eval -include $${$${TGT}_DEPS})
     endif
 
     TGT := $$(call PEEK,$${TGT_STACK})
