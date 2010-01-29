@@ -1,6 +1,6 @@
 TARGET := talk
 
-TGT_LDLIBS := -lanimals
+TGT_LDLIBS := 
 TGT_PREREQS := libanimals.a
 
 SOURCES := talk.cc

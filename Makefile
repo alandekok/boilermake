@@ -91,7 +91,7 @@ define ADD_TARGET_RULE.exe
     ${1}: $${${1}_OBJS} $${${1}_PREREQS}
 	    @mkdir -p $$(dir $$@)
 	    $$(strip $${TGT_LINKER} -o ${1} $${LDFLAGS} $${TGT_LDFLAGS} \
-	        $${${1}_OBJS} $${LDLIBS} $${TGT_LDLIBS})
+	        $${${1}_OBJS} $${LDLIBS} $${${1}_PRLIBS} $${TGT_LDLIBS})
 	    $${TGT_POSTMAKE}
 endef
 
@@ -122,7 +122,7 @@ define ADD_TARGET_RULE.exe
     ${1}: $${${1}_OBJS} $${${1}_PREREQS}
 	    @mkdir -p $$(dir $$@)
 	    ${LIBTOOL} --mode=link ${CC} -o ${1} $${LDFLAGS} $${TGT_LDFLAGS} \
-	        $${${1}_OBJS} $${LDLIBS} $${TGT_LDLIBS}
+	        $${${1}_OBJS} $${LDLIBS} $${${1}_PRLIBS} $${TGT_LDLIBS}
 	    $${TGT_POSTMAKE}
 endef
 endif
@@ -138,6 +138,9 @@ define CANONICAL_PATH
 $(patsubst ${CURDIR}/%,%,$(abspath ${1}))
 endef
 
+# LIBTOOL_ENDINGS - Given a library ending in ".a" or ".so", replace that
+#   extension with ".la".
+#
 define LIBTOOL_ENDINGS
 $(patsubst %.a,%.la,$(patsubst %.so,%.la,${1}))
 endef
@@ -234,6 +237,7 @@ define INCLUDE_SUBMAKEFILE
         endif
 
         $${TGT}_PREREQS := $$(addprefix $${TARGET_DIR}/,$${TGT_PREREQS})
+        $${TGT}_PRLIBS := $$(filter %.a %.so %.la,$${TGT_PREREQS})
         $${TGT}_DEPS :=
         $${TGT}_OBJS :=
         $${TGT}_SOURCES :=
