@@ -7,7 +7,7 @@
 #          Only edit this if you need to modify boilermake's behavior (fix
 #          bugs, add features, etc).
 
-# Older versions og GNU Make lack capabilities needed by this system.
+# Older versions of GNU Make lack capabilities needed by this system.
 # Instead, running "make" returns "nothing to do".  In order to tell
 # the user what really happened, we check the version of GNU make.
 #
@@ -17,6 +17,9 @@ ifeq ($(gnu_ok),)
 $(error Your version of GNU Make is too old.  We need at least $(gnu_need))
 endif
 
+# Automatically set some variables if we're using libtool.  Object files
+# are "foo.lo", not "foo.o".  Compilers are "libtool ... cc", not "cc".
+#
 ifeq "${LIBTOOL}" ""
 OBJ_EXT = o
 PROGRAM_CC = ${CC}
@@ -106,23 +109,55 @@ define ADD_TARGET_RULE.a
 	    $${TGT_POSTMAKE}
 endef
 
-#  If we're using libtool, re-define all of the rules to use it,
-#  rather than the above commands.
+#  If we're using libtool, re-define the target rules, as the linking
+#  rules are different.
 #
 ifneq "${LIBTOOL}" ""
 define ADD_TARGET_RULE.la
+    # Add a target for linking an executable. First, attempt to select the
+    # appropriate front-end to use for linking. This might not choose the
+    # right one (e.g. if linking with a C++ static library, but all other
+    # sources are C sources), so the user makefile is allowed to specify a
+    # linker to be used for each target.
+    ifeq "$$(strip $${${1}_LINKER})" ""
+        # No linker was explicitly specified to be used for this target. If
+        # there are any C++ sources for this target, use the C++ compiler.
+        # For all other targets, default to using the C compiler.
+        ifneq "$$(strip $$(filter $${CXX_SRC_EXTS},$${${1}_SOURCES}))" ""
+            ${1}: TGT_LINKER = ${LIBTOOL} --mode=link -module $${CXX}
+        else
+            ${1}: TGT_LINKER = ${LIBTOOL} --mode=link -module $${CC}
+        endif
+    endif
+
     ${1}: $${${1}_OBJS} $${${1}_PREREQS}
 	    @mkdir -p $$(dir $$@)
-	    ${LIBTOOL} --mode=link -module ${CC} -o ${1} $${LDFLAGS} $${TGT_LDFLAGS} \
-	        $${${1}_OBJS} $${LDLIBS} $${TGT_LDLIBS}
+	    $$(strip $${TGT_LINKER} -o ${1} $${LDFLAGS} $${TGT_LDFLAGS} \
+	        $${${1}_OBJS} $${LDLIBS} $${TGT_LDLIBS})
 	    $${TGT_POSTMAKE}
 endef
 
 define ADD_TARGET_RULE.exe
+    # Add a target for linking an executable. First, attempt to select the
+    # appropriate front-end to use for linking. This might not choose the
+    # right one (e.g. if linking with a C++ static library, but all other
+    # sources are C sources), so the user makefile is allowed to specify a
+    # linker to be used for each target.
+    ifeq "$$(strip $${${1}_LINKER})" ""
+        # No linker was explicitly specified to be used for this target. If
+        # there are any C++ sources for this target, use the C++ compiler.
+        # For all other targets, default to using the C compiler.
+        ifneq "$$(strip $$(filter $${CXX_SRC_EXTS},$${${1}_SOURCES}))" ""
+            ${1}: TGT_LINKER = ${LIBTOOL} --mode=link $${CXX}
+        else
+            ${1}: TGT_LINKER = ${LIBTOOL} --mode=link $${CC}
+        endif
+    endif
+
     ${1}: $${${1}_OBJS} $${${1}_PREREQS}
 	    @mkdir -p $$(dir $$@)
-	    ${LIBTOOL} --mode=link ${CC} -o ${1} $${LDFLAGS} $${TGT_LDFLAGS} \
-	        $${${1}_OBJS} $${LDLIBS} $${${1}_PRLIBS} $${TGT_LDLIBS}
+	    $$(strip $${TGT_LINKER} -o ${1} $${LDFLAGS} $${TGT_LDFLAGS} \
+	        $${${1}_OBJS} $${LDLIBS} $${${1}_PRLIBS} $${TGT_LDLIBS})
 	    $${TGT_POSTMAKE}
 endef
 endif
