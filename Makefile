@@ -237,7 +237,7 @@ define INCLUDE_SUBMAKEFILE
     # Reset the "current" target to it's previous value.
     TGT_STACK := $$(call POP,$${TGT_STACK})
 
-    # If we're about to change targets, create the rules
+    # If we're about to change targets, create the rules for the target
     ifneq "$${TGT}" "$$(call PEEK,$${TGT_STACK})"
         # If we're building in the root, DIR==DIR, and we add the target.
         # if we're building an a subdirectory, and delete/add of SUBDIR
@@ -247,7 +247,7 @@ define INCLUDE_SUBMAKEFILE
         # in that directory, BUT also building their dependencies
         # It also means cleaning ONLY the targets in the subdirectory.
         #
-        ifeq "$${DIR}" "$${SUBDIR}$$(subst $${SUBDIR},,$${DIR})"
+        ifeq "$$(abspath $${DIR})" "$$(abspath $${SUBDIR})$$(subst _xyz$$(abspath $${SUBDIR}),,_xyz$$(abspath $${DIR}))"
             ALL_TGTS += $${TGT}
 
             # Add the target to the default list of targets to be made
