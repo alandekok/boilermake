@@ -59,8 +59,15 @@ endef
 #
 define ADD_OBJECT_RULE
 $${BUILD_DIR}/%.${OBJ_EXT}: ${1}
+	@mkdir -p $$(dir $$@)
 	${2}
 endef
+
+%.P: %.d
+	@cp $< $@
+	@sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$$//' \
+	     -e '/^$$/ d' -e 's/$$/ :/' < $< >> $@
+	@rm -f $<
 
 # ADD_TARGET_RULE.* - Parameterized "functions" that adds a new target to the
 #   Makefile.  There should be one ADD_TARGET_RULE definition for each
@@ -182,26 +189,14 @@ endef
 
 # COMPILE_C_CMDS - Commands for compiling C source code.
 define COMPILE_C_CMDS
-	@mkdir -p $(dir $@)
-	$(strip ${PROGRAM_CC} -o $@ -c -MD ${CFLAGS} ${SRC_CFLAGS} ${INCDIRS} \
+	$(strip ${PROGRAM_CC} -o $@ -c ${MD_FLAGS} ${CFLAGS} ${SRC_CFLAGS} ${INCDIRS} \
 	    ${SRC_INCDIRS} ${SRC_DEFS} ${DEFS} $<)
-	@cp ${BUILD_DIR}/$*.d ${BUILD_DIR}/$*.P; \
-	 sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$$//' \
-	     -e '/^$$/ d' -e 's/$$/ :/' < ${BUILD_DIR}/$*.d \
-	     >> ${BUILD_DIR}/$*.P; \
-	 rm -f ${BUILD_DIR}/$*.d
 endef
 
 # COMPILE_CXX_CMDS - Commands for compiling C++ source code.
 define COMPILE_CXX_CMDS
-	@mkdir -p $(dir $@)
-	$(strip ${PROGRAM_CXX} -o $@ -c -MD ${CXXFLAGS} ${SRC_CXXFLAGS} ${INCDIRS} \
+	$(strip ${PROGRAM_CXX} -o $@ -c ${MD_FLAGS} ${CXXFLAGS} ${SRC_CXXFLAGS} ${INCDIRS} \
 	    ${SRC_INCDIRS} ${SRC_DEFS} ${DEFS} $<)
-	@cp ${BUILD_DIR}/$*.d ${BUILD_DIR}/$*.P; \
-	 sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$$//' \
-	     -e '/^$$/ d' -e 's/$$/ :/' < ${BUILD_DIR}/$*.d \
-	     >> ${BUILD_DIR}/$*.P; \
-	 rm -f ${BUILD_DIR}/$*.d
 endef
 
 # INCLUDE_SUBMAKEFILE - Parameterized "function" that includes a new
@@ -450,6 +445,9 @@ all:
 clean:
 	@$(MAKE) -C ${_ROOT} SUBDIR=${_RELATIVE} clean
 else
+
+# C compiler flags to do "make depend"
+MD_FLAGS := -MD
 
 # Include the main user-supplied submakefile. This also recursively includes
 # all other user-supplied submakefiles.
