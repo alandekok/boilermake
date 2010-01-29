@@ -17,6 +17,16 @@ ifeq ($(gnu_ok),)
 $(error Your version of GNU Make is too old.  We need at least $(gnu_need))
 endif
 
+ifeq "${LIBTOOL}" ""
+OBJ_EXT = o
+PROGRAM_CC = ${CC}
+PROGRAM_CXX = ${CXX}
+else
+OBJ_EXT = lo
+PROGRAM_CC = ${LIBTOOL} --mode=compile ${CC}
+PROGRAM_CXX = ${LIBTOOL} --mode=compile ${CXX}
+endif
+
 # Note: Parameterized "functions" in this makefile that are marked with
 #       "USE WITH EVAL" are only useful in conjuction with eval. This is
 #       because those functions result in a block of Makefile syntax that must
@@ -34,7 +44,7 @@ define ADD_CLEAN_RULE
     clean: clean_${1}
     .PHONY: clean_${1}
     clean_${1}:
-	$$(strip rm -f ${1} $${${1}_OBJS:%.o=%.[doP]})
+	$$(strip rm -f ${1} ${${1}_OBJS} $${${1}_OBJS:%.${OBJ_EXT}=%.[doP]})
 	$${${1}_POSTCLEAN}
 endef
 
@@ -45,7 +55,7 @@ endef
 #   USE WITH EVAL
 #
 define ADD_OBJECT_RULE
-$${BUILD_DIR}/%.o: ${1}
+$${BUILD_DIR}/%.${OBJ_EXT}: ${1}
 	${2}
 endef
 
@@ -96,6 +106,28 @@ define ADD_TARGET_RULE.a
 	    $${TGT_POSTMAKE}
 endef
 
+#  If we're using libtool, re-define all of the rules to use it,
+#  rather than the above commands.
+#
+ifneq "${LIBTOOL}" ""
+define ADD_TARGET_RULE.la
+    ${1}: $${${1}_OBJS} $${${1}_PREREQS}
+	    @mkdir -p $$(dir $$@)
+	    ${LIBTOOL} --mode=link -module ${CC} -o ${1} $${LDFLAGS} $${TGT_LDFLAGS} \
+	        $${${1}_OBJS} $${LDLIBS} $${TGT_LDLIBS}
+	    $${TGT_POSTMAKE}
+endef
+
+define ADD_TARGET_RULE.exe
+    ${1}: $${${1}_OBJS} $${${1}_PREREQS}
+	    @mkdir -p $$(dir $$@)
+	    ${LIBTOOL} --mode=link ${CC} -o ${1} $${LDFLAGS} $${TGT_LDFLAGS} \
+	        $${${1}_OBJS} $${LDLIBS} $${TGT_LDLIBS}
+	    $${TGT_POSTMAKE}
+endef
+endif
+
+
 # CANONICAL_PATH - Given one or more paths, converts the paths to the canonical
 #   form. The canonical form is the path, relative to the project's top-level
 #   directory (the directory from which "make" is run), and without
@@ -106,10 +138,14 @@ define CANONICAL_PATH
 $(patsubst ${CURDIR}/%,%,$(abspath ${1}))
 endef
 
+define LIBTOOL_ENDINGS
+$(patsubst %.a,%.la,$(patsubst %.so,%.la,${1}))
+endef
+
 # COMPILE_C_CMDS - Commands for compiling C source code.
 define COMPILE_C_CMDS
 	@mkdir -p $(dir $@)
-	$(strip ${CC} -o $@ -c -MD ${CFLAGS} ${SRC_CFLAGS} ${INCDIRS} \
+	$(strip ${PROGRAM_CC} -o $@ -c -MD ${CFLAGS} ${SRC_CFLAGS} ${INCDIRS} \
 	    ${SRC_INCDIRS} ${SRC_DEFS} ${DEFS} $<)
 	@cp ${BUILD_DIR}/$*.d ${BUILD_DIR}/$*.P; \
 	 sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$$//' \
@@ -121,7 +157,7 @@ endef
 # COMPILE_CXX_CMDS - Commands for compiling C++ source code.
 define COMPILE_CXX_CMDS
 	@mkdir -p $(dir $@)
-	$(strip ${CXX} -o $@ -c -MD ${CXXFLAGS} ${SRC_CXXFLAGS} ${INCDIRS} \
+	$(strip ${PROGRAM_CXX} -o $@ -c -MD ${CXXFLAGS} ${SRC_CXXFLAGS} ${INCDIRS} \
 	    ${SRC_INCDIRS} ${SRC_DEFS} ${DEFS} $<)
 	@cp ${BUILD_DIR}/$*.d ${BUILD_DIR}/$*.P; \
 	 sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$$//' \
@@ -180,6 +216,11 @@ define INCLUDE_SUBMAKEFILE
     ifneq "$$(strip $${TARGET})" ""
         # This makefile defined a new target. Target variables defined by this
         # makefile apply to this new target. Initialize the target's variables.
+
+        ifneq "${LIBTOOL}" ""
+            TARGET := $$(call LIBTOOL_ENDINGS,$${TARGET})
+        endif
+
         TGT := $$(strip $${TARGET_DIR}/$${TARGET})
         $${TGT}: TGT_LDFLAGS := $${TGT_LDFLAGS}
         $${TGT}: TGT_LDLIBS := $${TGT_LDLIBS}
@@ -187,6 +228,11 @@ define INCLUDE_SUBMAKEFILE
         $${TGT}: TGT_POSTMAKE := $${TGT_POSTMAKE}
         $${TGT}_LINKER := $${TGT_LINKER}
         $${TGT}_POSTCLEAN := $${TGT_POSTCLEAN}
+
+        ifneq "${LIBTOOL}" ""
+            TGT_PREREQS := $$(call LIBTOOL_ENDINGS,$${TGT_PREREQS})
+        endif
+
         $${TGT}_PREREQS := $$(addprefix $${TARGET_DIR}/,$${TGT_PREREQS})
         $${TGT}_DEPS :=
         $${TGT}_OBJS :=
@@ -220,13 +266,13 @@ define INCLUDE_SUBMAKEFILE
         # Convert the source file names to their corresponding object file
         # names.
         OBJS := $$(addprefix $${BUILD_DIR}/,\
-                   $$(addsuffix .o,$$(basename $${SOURCES})))
+                   $$(addsuffix .${OBJ_EXT},$$(basename $${SOURCES})))
 
         # Add the objects to the current target's list of objects, and create
         # target-specific variables for the objects based on any source
         # variables that were defined.
         $${TGT}_OBJS += $${OBJS}
-        $${TGT}_DEPS += $${OBJS:%.o=%.P}
+        $${TGT}_DEPS += $${OBJS:%.${OBJ_EXT}=%.P}
         $${OBJS}: SRC_CFLAGS := $${SRC_CFLAGS}
         $${OBJS}: SRC_CXXFLAGS := $${SRC_CXXFLAGS}
         $${OBJS}: SRC_DEFS := $$(addprefix -D,$${SRC_DEFS})
