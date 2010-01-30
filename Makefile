@@ -213,7 +213,7 @@ endef
 define INCLUDE_SUBMAKEFILE
     # Initialize all variables that can be defined by a makefile fragment, then
     # include the specified makefile fragment.
-    TARGET :=
+    TARGET := ..
     TGT_LDFLAGS :=
     TGT_LDLIBS :=
     TGT_LINKER :=
@@ -264,7 +264,21 @@ define INCLUDE_SUBMAKEFILE
     # Determine which target this makefile's variables apply to. A stack is
     # used to keep track of which target is the "current" target as we
     # recursively include other submakefiles.
-    ifneq "$$(strip $${TARGET})" ""
+    #
+    # In some cases, we do NOT want to build a target.  This is true
+    # when a target has external dependencies that are not available
+    # on a platform.  In that case, the submakefile should set TARGET
+    # to be blank.  The target ".." is a special internal flag
+    # indicating that the submakefile did NOT specify a target, and
+    # it should instead be added to the sources of the previous target.
+    ifeq "$$(strip $${TARGET})" ".."
+        # The values defined by this makefile apply to the the "current" target
+        # as determined by which target is at the top of the stack.
+
+        # This may end up being "..", too.
+        TGT := $$(strip $$(call PEEK,$${TGT_STACK}))
+
+    else ifneq "$$(strip $${TARGET})" ""
         # This makefile defined a new target. Target variables defined by this
         # makefile apply to this new target. Initialize the target's variables.
 
@@ -289,10 +303,18 @@ define INCLUDE_SUBMAKEFILE
         $${TGT}_DEPS :=
         $${TGT}_OBJS :=
         $${TGT}_SOURCES :=
+
+    # TARGET was set to "", which means "don't build it".
+    # So we set TGT to be the "don't build" flag.  This will carry
+    # through to any children.
     else
-        # The values defined by this makefile apply to the the "current" target
-        # as determined by which target is at the top of the stack.
-        TGT := $$(strip $$(call PEEK,$${TGT_STACK}))
+        TGT := ..
+    endif
+
+    # If after all that, the current (or parent) target is "don't build",
+    # then delete all of the sources so that it isn't built.
+    ifeq "$$(strip $${TGT})" ".."
+        SOURCES :=
     endif
 
     # Push the current target onto the target stack.
