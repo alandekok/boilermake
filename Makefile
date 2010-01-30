@@ -17,6 +17,11 @@ ifeq ($(gnu_ok),)
 $(error Your version of GNU Make is too old.  We need at least $(gnu_need))
 endif
 
+# Put this target first, so that submakefiles can define their own
+# targets without affecting the defaults for "make".
+#
+all:
+
 # Automatically set some variables if we're using libtool.  Object files
 # are "foo.lo", not "foo.o".  Compilers are "libtool ... cc", not "cc".
 #
@@ -224,11 +229,6 @@ define INCLUDE_SUBMAKEFILE
 
     SUBMAKEFILES :=
 
-    include ${1}
-
-    # Initialize internal local variables.
-    OBJS :=
-
     # Ensure that valid values are set for BUILD_DIR and TARGET_DIR.
     ifeq "$$(strip $${BUILD_DIR})" ""
         BUILD_DIR := build
@@ -236,6 +236,24 @@ define INCLUDE_SUBMAKEFILE
     ifeq "$$(strip $${TARGET_DIR})" ""
         TARGET_DIR := .
     endif
+
+    # Define "local directory" and "build directory" targets for
+    # the included submakefile.  The patsubst is there to remove
+    # the trailing slash, which allows submakefiles to use
+    #    $[b}/foo.o: ${d}/foo.c
+    # instead of
+    #    $[b}foo.o: ${d}foo.c
+    #
+    # If we didn't delete the trailing slash, Make could say that
+    # the target "build/foo.o" isn't the same as the target "build//foo.o",
+    # and refuse to re-build teh target for user-specificed dependencies.
+    d := $(patsubst %/,%,$(dir ${1}))
+    b := $(patsubst %/,%,${BUILD_DIR}/$(dir ${1}))
+
+    include ${1}
+
+    # Initialize internal local variables.
+    OBJS :=
 
     # A directory stack is maintained so that the correct paths are used as we
     # recursively include all submakefiles. Get the makefile's directory and
