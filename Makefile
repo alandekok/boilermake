@@ -17,10 +17,34 @@ ifeq ($(gnu_ok),)
 $(error Your version of GNU Make is too old.  We need at least $(gnu_need))
 endif
 
+define CANONICAL_PATH
+$(patsubst ${CURDIR}/%,%,$(abspath ${1}))
+endef
+
+# If this ISN'T the top-level Makefile, then find out where it is
+# and call it recursively.  This is the ONLY recursive use of "make"
+# in the framework.  It exists ONLY to allow people to use "make"
+# in a subdirectory.
+#
+ifneq "$(dir $(lastword $(MAKEFILE_LIST)))" "./"
+
+root := $(call CANONICAL_PATH,$(dir $(lastword $(MAKEFILE_LIST))))
+subdir := $(subst ${root}/,,${PWD})
+
+# Add any global targets like "install" here.  Just make sure that
+# "all" is the first target on the line, so that it is the default
+# target.
+#
+all clean:
+	@$(MAKE) -C ${root} SUBDIR=${subdir} $@
+else
+
 # Put this target first, so that submakefiles can define their own
 # targets without affecting the defaults for "make".
 #
 all:
+
+clean:
 
 # Automatically set some variables if we're using libtool.  Object files
 # are "foo.lo", not "foo.o".  Compilers are "libtool ... cc", not "cc".
@@ -174,16 +198,6 @@ define ADD_TARGET_RULE.exe
 endef
 endif
 
-
-# CANONICAL_PATH - Given one or more paths, converts the paths to the canonical
-#   form. The canonical form is the path, relative to the project's top-level
-#   directory (the directory from which "make" is run), and without
-#   any "./" or "../" sequences. For paths that are not  located below the
-#   top-level directory, the canonical form is the absolute path (i.e. from
-#   the root of the filesystem) also without "./" or "../" sequences.
-define CANONICAL_PATH
-$(patsubst ${CURDIR}/%,%,$(abspath ${1}))
-endef
 
 # LIBTOOL_ENDINGS - Given a library ending in ".a" or ".so", replace that
 #   extension with ".la".
@@ -452,46 +466,12 @@ DIR_STACK :=
 INCDIRS :=
 TGT_STACK :=
 
-# Ensure that these are defined as PHONY before anything else happens
-.PHONY: clean all
-
-# Allow subdirectories to have a "Makefile" that contains nothing more
-# than "include ../../../../boiler.mk".  If we notice that the current
-# directory doesn't have a "main.mk" file, we walk back up the
-# directory tree until we find one.
-#
-MAIN_MK := main.mk
-ifeq ($(wildcard ${MAIN_MK}),)
-_sp :=
-_sp +=
-_walk = $(if $1,$(wildcard /$(subst $(_sp),/,$1)/$2) $(call _walk,$(wordlist 2,$(words $1),x $1),$2))
-_find = $(firstword $(call _walk,$(strip $(subst /, ,$1)),$2))
-_ROOT := $(patsubst %/${MAIN_MK},%,$(call _find,$(CURDIR),${MAIN_MK}))
-
-ifeq (${_ROOT},)
-$(error Failed to find a top-level "main.mk" file)
-endif
-
-_RELATIVE=$(subst ${_ROOT}/,,${PWD})
-
-
-#
-#  We're in a subdirectory, go back up to the root, and re-build
-#  everything from there.
-#
-all:
-	@$(MAKE) -C ${_ROOT} SUBDIR=${_RELATIVE}
-
-clean:
-	@$(MAKE) -C ${_ROOT} SUBDIR=${_RELATIVE} clean
-else
-
 # C compiler flags to do "make depend"
 MD_FLAGS := -MD
 
 # Include the main user-supplied submakefile. This also recursively includes
 # all other user-supplied submakefiles.
-$(eval $(call INCLUDE_SUBMAKEFILE,${MAIN_MK}))
+$(eval $(call INCLUDE_SUBMAKEFILE,main.mk))
 
 # Perform post-processing on global variables as needed.
 DEFS := $(addprefix -D,${DEFS})
