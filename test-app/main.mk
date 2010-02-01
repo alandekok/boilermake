@@ -3,3 +3,7 @@ INCDIRS  := animals
 LDFLAGS  := -L.
 
 SUBMAKEFILES := talk.mk
+
+#
+install:
+	@echo Install!
