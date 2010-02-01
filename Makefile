@@ -9,7 +9,8 @@
 
 # Older versions of GNU Make lack capabilities needed by this system.
 # Instead, running "make" returns "nothing to do".  In order to tell
-# the user what really happened, we check the version of GNU make.
+# the user what really happened, we check the version of GNU make and
+# return an error.
 #
 gnu_need := 3.81
 gnu_ok := $(filter $(gnu_need),$(firstword $(sort $(MAKE_VERSION) $(gnu_need))))
@@ -17,6 +18,8 @@ ifeq ($(gnu_ok),)
 $(error Your version of GNU Make is too old.  We need at least $(gnu_need))
 endif
 
+#  Macro to return a full path for a file or directory.
+#
 define CANONICAL_PATH
 $(patsubst ${CURDIR}/%,%,$(abspath ${1}))
 endef
@@ -37,14 +40,19 @@ subdir := $(subst ${root}/,,${PWD})
 #
 all clean:
 	@$(MAKE) -C ${root} SUBDIR=${subdir} $@
+
 else
+# We are in the top-level directory.  Do non-recursive Make.
+#
 
 # Put this target first, so that submakefiles can define their own
 # targets without affecting the defaults for "make".
 #
-all:
-
-clean:
+# Add any global targets like "install" here.  Just make sure that
+# "all" is the first target on the line, so that it is the default
+# target.
+#
+all clean:
 
 # Automatically set some variables if we're using libtool.  Object files
 # are "foo.lo", not "foo.o".  Compilers are "libtool ... cc", not "cc".
@@ -143,6 +151,30 @@ define ADD_TARGET_RULE.a
 	    @mkdir -p $$(dir $$@)
 	    $$(strip $${AR} $${ARFLAGS} ${1} $${${1}_OBJS})
 	    $${TGT_POSTMAKE}
+endef
+
+# ADD_TARGET_RULE.so - Build a ".so" target.
+#
+#   USE WITH EVAL
+#
+define ADD_TARGET_RULE.so
+$(error Please add rules to build a ".so" file.)
+endef
+
+# ADD_TARGET_RULE.dll - Build a ".dll" target.
+#
+#   USE WITH EVAL
+#
+define ADD_TARGET_RULE.dll
+$(error Please add rules to build a ".dll" file.)
+endef
+
+# ADD_TARGET_RULE.dylib - Build a ".dylib" target.
+#
+#   USE WITH EVAL
+#
+define ADD_TARGET_RULE.dylib
+$(error Please add rules to build a ".dylib" file.)
 endef
 
 #  If we're using libtool, re-define the target rules, as the linking
