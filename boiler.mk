@@ -204,7 +204,7 @@ define ADD_INSTALL_RULE.exe
     install: install_${1}
     .PHONY: install_${1}
     install_${1}: ${1}
-	$$(strip $${INSTALL} -d -m 755 $${DESTDIR}/$${${1}_INSTALLDIR})
+	@mkdir -p $${DESTDIR}/$${${1}_INSTALLDIR}
 	$$(strip $${INSTALL} -m 755 ${1} $${DESTDIR}/$${${1}_INSTALLDIR})
 	$${${1}_POSTINSTALL}
 endef
@@ -218,7 +218,7 @@ define ADD_INSTALL_RULE.a
     install: install_${1}
     .PHONY: install_${1}
     install_${1}: ${1}
-	$$(strip $${INSTALL} -d -m 755 $${DESTDIR}/$${${1}_INSTALLDIR})
+	@mkdir -p $${DESTDIR}/$${${1}_INSTALLDIR}
 	$$(strip $${INSTALL} -m 755 ${1} $${DESTDIR}/$${${1}_INSTALLDIR})
 	$${${1}_POSTINSTALL}
 endef
@@ -284,7 +284,7 @@ define ADD_INSTALL_RULE.exe
     install: install_${1}
     .PHONY: install_${1}
     install_${1}: ${1}
-	$$(strip $${INSTALL} -d -m 755 $${DESTDIR}/$${${1}_INSTALLDIR})
+	@mkdir -p $${DESTDIR}/$${${1}_INSTALLDIR}
 	$$(strip $(LIBTOOL) --mode=install $${INSTALL} -m 755 ${1} $${DESTDIR}/$${${1}_INSTALLDIR})
 	$${${1}_POSTINSTALL}
 endef
@@ -298,7 +298,7 @@ define ADD_INSTALL_RULE.la
     install: install_${1}
     .PHONY: install_${1}
     install_${1}: ${1}
-	$$(strip $${INSTALL} -d -m 755 $${DESTDIR}/$${${1}_INSTALLDIR})
+	@mkdir -p $${DESTDIR}/$${${1}_INSTALLDIR}
 	$$(strip $(LIBTOOL) --mode=install $${INSTALL} -m 755 ${1} $${DESTDIR}/$${${1}_INSTALLDIR})
 	$${${1}_POSTINSTALL}
 endef
@@ -425,13 +425,22 @@ define INCLUDE_SUBMAKEFILE
         $${TGT}_POSTCLEAN := $${TGT_POSTCLEAN}
         $${TGT}_POSTINSTALL := $${TGT_POSTINSTALL}
 
+        ifneq "${LIBTOOL}" ""
+            TGT_PREREQS := $$(call LIBTOOL_ENDINGS,$${TGT_PREREQS})
+        endif
+
+        $${TGT}_PREREQS := $$(addprefix $${TARGET_DIR}/,$${TGT_PREREQS})
+        $${TGT}_PRLIBS := $$(filter %.a %.so %.la,$${TGT_PREREQS})
+        $${TGT}_DEPS :=
+        $${TGT}_OBJS :=
+        $${TGT}_SOURCES :=
+        $${TGT}_SUFFIX := $$(if $$(suffix $${TGT}),$$(suffix $${TGT}),.exe)
+
         # Figure out which target rule to use for building.
-	TGT_SUFFIX := $$(suffix $${TGT})
-        ifeq "$${TGT_SUFFIX}" ""
+        ifeq "$${$${TGT}_SUFFIX}" ".exe"
             # This rule is correct only when the framework is used
             # ONLY for building executables.  We need to fix it to
             # allow for building && installation of other kinds of files.
-            TGT_SUFFIX := .exe
 
             ifeq "$${TGT_INSTALLDIR}" ".."
                 TGT_INSTALLDIR := $${bindir}
@@ -443,16 +452,6 @@ define INCLUDE_SUBMAKEFILE
         endif
 
         $${TGT}_INSTALLDIR := $${TGT_INSTALLDIR}
-
-        ifneq "${LIBTOOL}" ""
-            TGT_PREREQS := $$(call LIBTOOL_ENDINGS,$${TGT_PREREQS})
-        endif
-
-        $${TGT}_PREREQS := $$(addprefix $${TARGET_DIR}/,$${TGT_PREREQS})
-        $${TGT}_PRLIBS := $$(filter %.a %.so %.la,$${TGT_PREREQS})
-        $${TGT}_DEPS :=
-        $${TGT}_OBJS :=
-        $${TGT}_SOURCES :=
 
     # TARGET was set to "", which means "don't build it".
     # So we set TGT to be the "don't build" flag.  This will carry
@@ -539,12 +538,12 @@ define INCLUDE_SUBMAKEFILE
         # to the build system.
 
         # add rules to build the target
-        $$(eval $$(call ADD_TARGET_RULE$${TGT_SUFFIX},$${TGT}))
+        $$(eval $$(call ADD_TARGET_RULE$${$${TGT}_SUFFIX},$${TGT}))
 
         ifneq "${INSTALL}" ""
             ifneq "$${$${TGT}_INSTALLDIR}" ""
                 # add rules to install the target
-                $$(eval $$(call ADD_INSTALL_RULE$${TGT_SUFFIX},$${TGT}))
+                $$(eval $$(call ADD_INSTALL_RULE$${$${TGT}_SUFFIX},$${TGT}))
             endif
         endif
 
