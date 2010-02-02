@@ -191,8 +191,8 @@ define ADD_INSTALL_RULE.exe
     install: install_${1}
     .PHONY: install_${1}
     install_${1}: ${1}
-	$$(strip $${INSTALL} -d 755 $${DESTDIR}/$${bindir})
-	$$(strip $${INSTALL} -m 755 ${1} $${DESTDIR}/$${bindir})
+	$$(strip $${INSTALL} -d 755 $${DESTDIR}/$${${1}_INSTALLDIR})
+	$$(strip $${INSTALL} -m 755 ${1} $${DESTDIR}/$${${1}_INSTALLDIR})
 	$${${1}_POSTINSTALL}
 endef
 
@@ -205,8 +205,8 @@ define ADD_INSTALL_RULE.a
     install: install_${1}
     .PHONY: install_${1}
     install_${1}: ${1}
-	$$(strip $${INSTALL} -d 755 $${DESTDIR}/$${libdir})
-	$$(strip $${INSTALL} -m 755 ${1} $${DESTDIR}/$${libdir})
+	$$(strip $${INSTALL} -d 755 $${DESTDIR}/$${${1}_INSTALLDIR})
+	$$(strip $${INSTALL} -m 755 ${1} $${DESTDIR}/$${${1}_INSTALLDIR})
 	$${${1}_POSTINSTALL}
 endef
 
@@ -271,8 +271,8 @@ define ADD_INSTALL_RULE.exe
     install: install_${1}
     .PHONY: install_${1}
     install_${1}: ${1}
-	$$(strip $${INSTALL} -d 755 $${DESTDIR}/$${bindir})
-	$$(strip $(LIBTOOL) --mode=install $${INSTALL} -m 755 ${1} $${DESTDIR}/$${bindir})
+	$$(strip $${INSTALL} -d 755 $${DESTDIR}/$${${1}_INSTALLDIR})
+	$$(strip $(LIBTOOL) --mode=install $${INSTALL} -m 755 ${1} $${DESTDIR}/$${${1}_INSTALLDIR})
 	$${${1}_POSTINSTALL}
 endef
 
@@ -285,8 +285,8 @@ define ADD_INSTALL_RULE.la
     install: install_${1}
     .PHONY: install_${1}
     install_${1}: ${1}
-	$$(strip $${INSTALL} -d 755 $${DESTDIR}/$${libdir})
-	$$(strip $(LIBTOOL) --mode=install $${INSTALL} -m 755 ${1} $${DESTDIR}/$${libdir})
+	$$(strip $${INSTALL} -d 755 $${DESTDIR}/$${${1}_INSTALLDIR})
+	$$(strip $(LIBTOOL) --mode=install $${INSTALL} -m 755 ${1} $${DESTDIR}/$${${1}_INSTALLDIR})
 	$${${1}_POSTINSTALL}
 endef
 
@@ -335,6 +335,8 @@ define INCLUDE_SUBMAKEFILE
     TGT_POSTCLEAN :=
     TGT_POSTMAKE :=
     TGT_PREREQS :=
+    TGT_POSTINSTALL :=
+    TGT_INSTALLDIR :=
 
     SOURCES :=
     SRC_CFLAGS :=
@@ -408,6 +410,23 @@ define INCLUDE_SUBMAKEFILE
         $${TGT}: TGT_POSTMAKE := $${TGT_POSTMAKE}
         $${TGT}_LINKER := $${TGT_LINKER}
         $${TGT}_POSTCLEAN := $${TGT_POSTCLEAN}
+        $${TGT}_POSTINSTALL := $${TGT_POSTINSTALL}
+
+        # Figure out which target rule to use for building.
+	TGT_SUFFIX := $$(suffix $${TGT})
+        ifeq "$${TGT_SUFFIX}" ""
+            TGT_SUFFIX := .exe
+
+            ifeq "$${TGT_INSTALLDIR}" ""
+                TGT_INSTALLDIR := $${bindir}
+            endif
+        else 
+            ifeq "$${TGT_INSTALLDIR}" ""
+                TGT_INSTALLDIR := $${libdir}
+            endif
+        endif
+
+        $${TGT}_INSTALLDIR := $${TGT_INSTALLDIR}
 
         ifneq "${LIBTOOL}" ""
             TGT_PREREQS := $$(call LIBTOOL_ENDINGS,$${TGT_PREREQS})
@@ -502,12 +521,6 @@ define INCLUDE_SUBMAKEFILE
 
         # For dependency tracking to work, we still add all targets
         # to the build system.
-
-        # Figure out which target rule to use for building.
-	TGT_SUFFIX := $$(suffix $${TGT})
-        ifeq "$${TGT_SUFFIX}" ""
-            TGT_SUFFIX := .exe
-        endif
 
         # add rules to build the target
         $$(eval $$(call ADD_TARGET_RULE$${TGT_SUFFIX},$${TGT}))
