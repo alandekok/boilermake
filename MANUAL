@@ -207,6 +207,9 @@ TGT_INSTALLDIR
 --------------
    Can be used to specify the installation directory of the target.
    Defaults to ${bindir} for executables, and ${libdir} for libraries.
+   You can make a target NOT installable by setting it to an empty value:
+
+      TGT_INSTALLDIR :=
 
 TGT_POSTINSTALL
 ---------------

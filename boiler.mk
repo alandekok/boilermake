@@ -336,7 +336,7 @@ define INCLUDE_SUBMAKEFILE
     TGT_POSTMAKE :=
     TGT_PREREQS :=
     TGT_POSTINSTALL :=
-    TGT_INSTALLDIR :=
+    TGT_INSTALLDIR := ..
 
     SOURCES :=
     SRC_CFLAGS :=
@@ -415,13 +415,16 @@ define INCLUDE_SUBMAKEFILE
         # Figure out which target rule to use for building.
 	TGT_SUFFIX := $$(suffix $${TGT})
         ifeq "$${TGT_SUFFIX}" ""
+            # This rule is correct only when the framework is used
+            # ONLY for building executables.  We need to fix it to
+            # allow for building && installation of other kinds of files.
             TGT_SUFFIX := .exe
 
-            ifeq "$${TGT_INSTALLDIR}" ""
+            ifeq "$${TGT_INSTALLDIR}" ".."
                 TGT_INSTALLDIR := $${bindir}
             endif
         else 
-            ifeq "$${TGT_INSTALLDIR}" ""
+            ifeq "$${TGT_INSTALLDIR}" ".."
                 TGT_INSTALLDIR := $${libdir}
             endif
         endif
@@ -526,8 +529,10 @@ define INCLUDE_SUBMAKEFILE
         $$(eval $$(call ADD_TARGET_RULE$${TGT_SUFFIX},$${TGT}))
 
         ifneq "${INSTALL}" ""
-            # add rules to install the target
-            $$(eval $$(call ADD_INSTALL_RULE$${TGT_SUFFIX},$${TGT}))
+            ifneq "$${$${TGT}_INSTALLDIR}" ""
+                # add rules to install the target
+                $$(eval $$(call ADD_INSTALL_RULE$${TGT_SUFFIX},$${TGT}))
+            endif
         endif
 
         # include the dependency files of the target
