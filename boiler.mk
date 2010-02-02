@@ -174,6 +174,14 @@ define ADD_TARGET_RULE.dylib
 $(error Please add rules to build a ".dylib" file.)
 endef
 
+# ADD_TARGET_RULE.la - Build a ".la" target.
+#
+#   USE WITH EVAL
+#
+define ADD_TARGET_RULE.la
+$(error Please define LIBTOOL and re-build)
+endef
+
 # ADD_INSTALL_RULE.* - Parameterized "functions" that adds a new
 #   installation to the Makefile.  There should be one ADD_INSTALL_RULE
 #   definition for each type of target that is used in the build.
