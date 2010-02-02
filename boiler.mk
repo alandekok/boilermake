@@ -1,6 +1,10 @@
 # boilermake: A reusable, but flexible, boilerplate Makefile.
 #
-# Author: Dan Moulding <dmoulding@gmail.com> (2008)
+# Boilermake author: Dan Moulding <dmoulding@gmail.com> (2008)
+#
+# Major extensions
+#  (multiple object targets, libtool, install, subdir Makefiles)
+#         Alan DeKok <aland@freeradius.org>
 
 # Caution: Don't edit this Makefile! Create your own main.mk and other
 #          submakefiles, which will be included by this Makefile.
@@ -29,7 +33,7 @@ root := $(patsubst ${CURDIR}/%,%,$(abspath $(dir $(lastword $(MAKEFILE_LIST)))))
 subdir := $(subst ${root}/,,${PWD})
 
 # Catch the common installation targets.
-all clean ${ALL_TARGETS}:
+all clean targets ${ALL_TARGETS}:
 	@$(MAKE) -C ${root} SUBDIR=${subdir} $@
 
 else
@@ -39,7 +43,8 @@ BOILER_TOP := "yes"
 #
 
 # Put these targets first, so that submakefiles can define their own
-# targets without affecting the defaults for "make".
+# targets without affecting the default target for "make".
+.PHONY: all clean
 all clean:
 
 # Automatically set some variables if we're using libtool.  Object files
@@ -616,5 +621,9 @@ $(foreach EXT,${C_SRC_EXTS},\
 # Add pattern rule(s) for creating compiled object code from C++ source.
 $(foreach EXT,${CXX_SRC_EXTS},\
   $(eval $(call ADD_OBJECT_RULE,${EXT},$${COMPILE_CXX_CMDS})))
+
+# Informational, so you can see which targets are available for building.
+targets:
+	@echo ${ALL_TGTS}
 
 endif
