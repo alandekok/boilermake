@@ -36,6 +36,10 @@ BUILD_DIR
    hierarchy that mirrors the source hierarchy will be generated under this
    directory.
 
+   In order to build object files directly in the source tree, use:
+
+      BUILD_DIR := .
+
    It is advised to set this variable only once (so that all intermediate
    build-generated files are placed under a common directory). Changing this
    variable from one submakefile to the next is not recommended (and is not
