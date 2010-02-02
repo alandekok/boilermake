@@ -18,12 +18,6 @@ ifeq ($(gnu_ok),)
 $(error Your version of GNU Make is too old.  We need at least $(gnu_need))
 endif
 
-#  Macro to return a full path for a file or directory.
-#
-define CANONICAL_PATH
-$(patsubst ${CURDIR}/%,%,$(abspath ${1}))
-endef
-
 # If this ISN'T the top-level Makefile, then find out where it is
 # and call it recursively.  This is the ONLY recursive use of "make"
 # in the framework.  It exists ONLY to allow people to use "make"
@@ -31,13 +25,10 @@ endef
 #
 ifneq "$(dir $(lastword $(MAKEFILE_LIST)))" "./"
 
-root := $(call CANONICAL_PATH,$(dir $(lastword $(MAKEFILE_LIST))))
+root := $(patsubst ${CURDIR}/%,%,$(abspath $(dir $(lastword $(MAKEFILE_LIST)))))
 subdir := $(subst ${root}/,,${PWD})
 
-# Add any global targets like "install" here.  Just make sure that
-# "all" is the first target on the line, so that it is the default
-# target.
-#
+# Catch the common installation targets.
 all clean ${ALL_TARGETS}:
 	@$(MAKE) -C ${root} SUBDIR=${subdir} $@
 
@@ -47,13 +38,8 @@ BOILER_TOP := "yes"
 # We are in the top-level directory.  Do non-recursive Make.
 #
 
-# Put this target first, so that submakefiles can define their own
+# Put these targets first, so that submakefiles can define their own
 # targets without affecting the defaults for "make".
-#
-# Add any global targets like "install" here.  Just make sure that
-# "all" is the first target on the line, so that it is the default
-# target.
-#
 all clean:
 
 # Automatically set some variables if we're using libtool.  Object files
@@ -67,6 +53,15 @@ else
 OBJ_EXT = lo
 PROGRAM_CC = ${LIBTOOL} --mode=compile ${CC}
 PROGRAM_CXX = ${LIBTOOL} --mode=compile ${CXX}
+endif
+
+ifeq "${INSTALL}" ""
+install:
+	@echo You need to define INSTALL in the top level Makefile.
+	@exit 1
+else
+# Define this so other rules will use it, too.
+install:
 endif
 
 # Note: Parameterized "functions" in this makefile that are marked with
@@ -179,8 +174,44 @@ define ADD_TARGET_RULE.dylib
 $(error Please add rules to build a ".dylib" file.)
 endef
 
-#  If we're using libtool, re-define the target rules, as the linking
-#  rules are different.
+# ADD_INSTALL_RULE.* - Parameterized "functions" that adds a new
+#   installation to the Makefile.  There should be one ADD_INSTALL_RULE
+#   definition for each type of target that is used in the build.
+#
+#   New rules can be added by copying one of the existing ones, and
+#   replacing the line containing $$(strip ...)
+#
+
+# ADD_INSTALL_RULE.exe - Parameterized "function" that adds a new rule
+#   and phony target for installing an executable.
+#
+#   USE WITH EVAL
+#
+define ADD_INSTALL_RULE.exe
+    install: install_${1}
+    .PHONY: install_${1}
+    install_${1}: ${1}
+	$$(strip $${INSTALL} -d 755 $${DESTDIR}/$${bindir})
+	$$(strip $${INSTALL} -m 755 ${1} $${DESTDIR}/$${bindir})
+	$${${1}_POSTINSTALL}
+endef
+
+# ADD_INSTALL_RULE.a - Parameterized "function" that adds a new rule
+#   and phony target for installing a static library
+#
+#   USE WITH EVAL
+#
+define ADD_INSTALL_RULE.a
+    install: install_${1}
+    .PHONY: install_${1}
+    install_${1}: ${1}
+	$$(strip $${INSTALL} -d 755 $${DESTDIR}/$${libdir})
+	$$(strip $${INSTALL} -m 755 ${1} $${DESTDIR}/$${libdir})
+	$${${1}_POSTINSTALL}
+endef
+
+#  If we're using libtool, re-define the target and installation
+#  rules, as the linking rules are different.
 #
 ifneq "${LIBTOOL}" ""
 define ADD_TARGET_RULE.la
@@ -230,6 +261,36 @@ define ADD_TARGET_RULE.exe
 	        $${${1}_OBJS} $${LDLIBS} $${${1}_PRLIBS} $${TGT_LDLIBS})
 	    $${TGT_POSTMAKE}
 endef
+
+# ADD_INSTALL_RULE.exe - Parameterized "function" that adds a new rule
+#   and phony target for installing an executable.
+#
+#   USE WITH EVAL
+#
+define ADD_INSTALL_RULE.exe
+    install: install_${1}
+    .PHONY: install_${1}
+    install_${1}: ${1}
+	$$(strip $${INSTALL} -d 755 $${DESTDIR}/$${bindir})
+	$$(strip $(LIBTOOL) --mode=install $${INSTALL} -m 755 ${1} $${DESTDIR}/$${bindir})
+	$${${1}_POSTINSTALL}
+endef
+
+# ADD_INSTALL_RULE.la - Parameterized "function" that adds a new rule
+#   and phony target for installing a libtool library
+#
+#   USE WITH EVAL
+#
+define ADD_INSTALL_RULE.la
+    install: install_${1}
+    .PHONY: install_${1}
+    install_${1}: ${1}
+	$$(strip $${INSTALL} -d 755 $${DESTDIR}/$${libdir})
+	$$(strip $(LIBTOOL) --mode=install $${INSTALL} -m 755 ${1} $${DESTDIR}/$${libdir})
+	$${${1}_POSTINSTALL}
+endef
+
+# end of libtool-specific target and install rules.
 endif
 
 
@@ -238,6 +299,12 @@ endif
 #
 define LIBTOOL_ENDINGS
 $(patsubst %.a,%.la,$(patsubst %.so,%.la,${1}))
+endef
+
+#  Macro to return a full path for a file or directory.
+#
+define CANONICAL_PATH
+$(patsubst ${CURDIR}/%,%,$(abspath ${1}))
 endef
 
 # COMPILE_C_CMDS - Commands for compiling C source code.
@@ -444,6 +511,11 @@ define INCLUDE_SUBMAKEFILE
 
         # add rules to build the target
         $$(eval $$(call ADD_TARGET_RULE$${TGT_SUFFIX},$${TGT}))
+
+        ifneq "${INSTALL}" ""
+            # add rules to install the target
+            $$(eval $$(call ADD_INSTALL_RULE$${TGT_SUFFIX},$${TGT}))
+        endif
 
         # include the dependency files of the target
         $$(eval -include $${$${TGT}_DEPS})
