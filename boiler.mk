@@ -204,7 +204,7 @@ define ADD_INSTALL_RULE.exe
     install: install_${1}
     .PHONY: install_${1}
     install_${1}: ${1}
-	$$(strip $${INSTALL} -d 755 $${DESTDIR}/$${${1}_INSTALLDIR})
+	$$(strip $${INSTALL} -d -m 755 $${DESTDIR}/$${${1}_INSTALLDIR})
 	$$(strip $${INSTALL} -m 755 ${1} $${DESTDIR}/$${${1}_INSTALLDIR})
 	$${${1}_POSTINSTALL}
 endef
@@ -218,7 +218,7 @@ define ADD_INSTALL_RULE.a
     install: install_${1}
     .PHONY: install_${1}
     install_${1}: ${1}
-	$$(strip $${INSTALL} -d 755 $${DESTDIR}/$${${1}_INSTALLDIR})
+	$$(strip $${INSTALL} -d -m 755 $${DESTDIR}/$${${1}_INSTALLDIR})
 	$$(strip $${INSTALL} -m 755 ${1} $${DESTDIR}/$${${1}_INSTALLDIR})
 	$${${1}_POSTINSTALL}
 endef
@@ -284,7 +284,7 @@ define ADD_INSTALL_RULE.exe
     install: install_${1}
     .PHONY: install_${1}
     install_${1}: ${1}
-	$$(strip $${INSTALL} -d 755 $${DESTDIR}/$${${1}_INSTALLDIR})
+	$$(strip $${INSTALL} -d -m 755 $${DESTDIR}/$${${1}_INSTALLDIR})
 	$$(strip $(LIBTOOL) --mode=install $${INSTALL} -m 755 ${1} $${DESTDIR}/$${${1}_INSTALLDIR})
 	$${${1}_POSTINSTALL}
 endef
@@ -298,7 +298,7 @@ define ADD_INSTALL_RULE.la
     install: install_${1}
     .PHONY: install_${1}
     install_${1}: ${1}
-	$$(strip $${INSTALL} -d 755 $${DESTDIR}/$${${1}_INSTALLDIR})
+	$$(strip $${INSTALL} -d -m 755 $${DESTDIR}/$${${1}_INSTALLDIR})
 	$$(strip $(LIBTOOL) --mode=install $${INSTALL} -m 755 ${1} $${DESTDIR}/$${${1}_INSTALLDIR})
 	$${${1}_POSTINSTALL}
 endef
