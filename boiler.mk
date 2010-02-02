@@ -205,7 +205,7 @@ define ADD_INSTALL_RULE.exe
     .PHONY: install_${1}
     install_${1}: ${1}
 	@mkdir -p $${DESTDIR}/$${${1}_INSTALLDIR}
-	$$(strip $${INSTALL} -m 755 ${1} $${DESTDIR}/$${${1}_INSTALLDIR})
+	$$(strip $${INSTALL} -c -m 755 ${1} $${DESTDIR}/$${${1}_INSTALLDIR}/)
 	$${${1}_POSTINSTALL}
 endef
 
@@ -219,7 +219,7 @@ define ADD_INSTALL_RULE.a
     .PHONY: install_${1}
     install_${1}: ${1}
 	@mkdir -p $${DESTDIR}/$${${1}_INSTALLDIR}
-	$$(strip $${INSTALL} -m 755 ${1} $${DESTDIR}/$${${1}_INSTALLDIR})
+	$$(strip $${INSTALL} -c -m 755 ${1} $${DESTDIR}/$${${1}_INSTALLDIR}/)
 	$${${1}_POSTINSTALL}
 endef
 
@@ -285,7 +285,7 @@ define ADD_INSTALL_RULE.exe
     .PHONY: install_${1}
     install_${1}: ${1}
 	@mkdir -p $${DESTDIR}/$${${1}_INSTALLDIR}
-	$$(strip $(LIBTOOL) --mode=install $${INSTALL} -m 755 ${1} $${DESTDIR}/$${${1}_INSTALLDIR})
+	$$(strip $(LIBTOOL) --mode=install $${INSTALL} -m 755 ${1} $${DESTDIR}/$${${1}_INSTALLDIR}/)
 	$${${1}_POSTINSTALL}
 endef
 
@@ -299,7 +299,7 @@ define ADD_INSTALL_RULE.la
     .PHONY: install_${1}
     install_${1}: ${1}
 	@mkdir -p $${DESTDIR}/$${${1}_INSTALLDIR}
-	$$(strip $(LIBTOOL) --mode=install $${INSTALL} -m 755 ${1} $${DESTDIR}/$${${1}_INSTALLDIR})
+	$$(strip $(LIBTOOL) --mode=install $${INSTALL} -m 755 ${1} $${DESTDIR}/$${${1}_INSTALLDIR}/)
 	$${${1}_POSTINSTALL}
 endef
 
