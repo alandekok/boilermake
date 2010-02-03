@@ -77,6 +77,40 @@ without using the boilermake TARGET variable. The key thing is that boilermake
 defines a number of special variables that you can use to automatically create
 build rules that can otherwise be quite difficult to get right.
 
+Additional Target Rules
+-----------------------
+This framework builds programs and libraries from C or C++ files.
+However, many projects have additional targets that need to be built
+or installed.  These can be added to the Submakefile, once some
+additional caveats are applied.
+
+Instead of adding new rules to build "all", "clean", or other targets,
+add new *dependencies* for those targets:
+
+  RIGHT:
+
+all: submake_target
+# NO commands here!
+
+install: submake_install
+# NO commands here!
+
+submake_target: file.h
+	@touch submake_target
+
+submake_install: submake_target
+	@mkdir -p ${DESTDIR}/${datadir}
+	@$(INSTALL) -m 644 submake_target ${DESTDIR}/${datadir}
+
+  WRONG:
+
+install: submake_target
+	@mkdir -p ${DESTDIR}/${datadir}
+	@$(INSTALL) -m 644 submake_target ${DESTDIR}/${datadir}
+
+This practice lets you extend the framework to data files or any other
+kind of file that is not supported by boilermake.
+
 Example Test Application
 ------------------------
 The test-app directory contains a simple example main.mk with several
