@@ -225,7 +225,6 @@ TGT_POSTINSTALL
 
 Local dependencies
 ------------------
-
   Dependencies can be specified manually using the 'b' and 'd' macros.
   ${b} will expand to the build directory, and ${d} to the local directory.
   This lets you add depencies in case the compiler can't generate them
@@ -236,3 +235,10 @@ Local dependencies
   If you are using LIBTOOL, you will need to specify the object extension:
 
       ${b}/animal.${OBJ_EXT}: ${d}/animal.cc ${d}/animal.hh
+
+MAN
+---
+   Unix "man" pages can be installed by setting the MAN variable.
+   e.g. "MAN := talk.1".  The page will be automatically installed in
+   ${mandir}/man1/talk.1, or in whatever other "man" directory is specified
+   by the suffix of the "man" page. (e.g. talk.5 -> ${mandir}/man5/, etc.)

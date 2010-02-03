@@ -24,8 +24,8 @@ endif
 
 # If this ISN'T the top-level Makefile, then find out where it is
 # and call it recursively.  This is the ONLY recursive use of "make"
-# in the framework.  It exists ONLY to allow people to use "make"
-# in a subdirectory.
+# in the framework.  It exists ONLY to allow people to run "make"
+# from a subdirectory.
 #
 ifneq "$(dir $(lastword $(MAKEFILE_LIST)))" "./"
 
@@ -37,7 +37,6 @@ all clean targets ${ALL_TARGETS}:
 	@$(MAKE) -C ${root} SUBDIR=${subdir} $@
 
 else
-BOILER_TOP := "yes"
 
 # We are in the top-level directory.  Do non-recursive Make.
 #
@@ -223,6 +222,22 @@ define ADD_INSTALL_RULE.a
 	$${${1}_POSTINSTALL}
 endef
 
+# ADD_INSTALL_RULE.man - Parameterized "function" that adds a new rule
+#   and phony target for installing a "man" page.  It will take care of
+#   installing it into the correct subdirectory of "man".
+#
+#   USE WITH EVAL
+#
+define ADD_INSTALL_RULE.man
+    TGT_MANPATH := $${DESTDIR}/$${mandir}/man$$(subst .,,$$(suffix ${1}))
+
+    install: $${TGT_MANPATH}/${1}
+
+    $${TGT_MANPATH}/${1}: ${1}
+	@mkdir -p $${TGT_MANPATH}/
+	$$(strip $${INSTALL} -c -m 755 ${1} $${TGT_MANPATH}/)
+endef
+
 #  If we're using libtool, re-define the target and installation
 #  rules, as the linking rules are different.
 #
@@ -342,14 +357,16 @@ define INCLUDE_SUBMAKEFILE
     # Initialize all variables that can be defined by a makefile fragment, then
     # include the specified makefile fragment.
     TARGET := ..
+    TGT_PREREQS :=
     TGT_LDFLAGS :=
     TGT_LDLIBS :=
     TGT_LINKER :=
     TGT_POSTCLEAN :=
     TGT_POSTMAKE :=
-    TGT_PREREQS :=
     TGT_POSTINSTALL :=
     TGT_INSTALLDIR := ..
+
+    MAN :=
 
     SOURCES :=
     SRC_CFLAGS :=
@@ -453,6 +470,8 @@ define INCLUDE_SUBMAKEFILE
 
         $${TGT}_INSTALLDIR := $${TGT_INSTALLDIR}
 
+        $${TGT}_MAN := $${MAN}
+
     # TARGET was set to "", which means "don't build it".
     # So we set TGT to be the "don't build" flag.  This will carry
     # through to any children.
@@ -540,10 +559,21 @@ define INCLUDE_SUBMAKEFILE
         # add rules to build the target
         $$(eval $$(call ADD_TARGET_RULE$${$${TGT}_SUFFIX},$${TGT}))
 
+        # do installs only if we have an installation program.
         ifneq "${INSTALL}" ""
+            # add rules to install the target
             ifneq "$${$${TGT}_INSTALLDIR}" ""
-                # add rules to install the target
                 $$(eval $$(call ADD_INSTALL_RULE$${$${TGT}_SUFFIX},$${TGT}))
+            endif
+
+            # add rules to install the MAN pages.
+            ifeq "$${mandir}" ""
+                $$(error You must define 'mandir' in order to be able to install MAN pages.)
+            endif
+
+            ifneq "$${$${TGT}_MAN}" ""
+                $$(foreach MAN,$${$${TGT}_MAN},\
+                    $$(eval $$(call ADD_INSTALL_RULE.man,$${MAN})))
             endif
         endif
 
