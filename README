@@ -4,7 +4,8 @@ Overview
 --------
 Boilermake is a reusable GNU Make compatible Makefile. It uses a non-recursive
 strategy which avoids the many well-known pitfalls of recursive make.
-Currently, boilermake only knows how to build C and C++ programs.
+Currently, boilermake only knows how to build C and C++ programs, but it
+can be extended for other kinds of programs.
 
 It requires version 3.81 or later of GNU Make, as earlier versions
 lack the functionality required by Boilermake.
@@ -52,10 +53,11 @@ Each subdirectory can have a "Makefile", too.  These files should contain
 	  include ../../Makefile
 
 Use enough "../" to reach the top-level Makefile.  It will figure out
-where you are, and re-build all of the TARGETs in this subdirectory.
-Any dependencies will be re-build.  If the subdirectory has no Submakefile
-with a TARGET, you will get an error, and you should not have a Makefile
-in that directory.
+where you are, and re-build all of the TARGETs in that subdirectory,
+and only that subdirectory.  Any dependencies of those targets will
+also be re-built.  If the subdirectory has no submakefile with a
+TARGET, you will get an error, as you should not have a Makefile in
+that directory.
 
 Targets
 -------
@@ -89,24 +91,28 @@ add new *dependencies* for those targets:
 
   RIGHT:
 
+###
+# build "submake_target" when building "all"
 all: submake_target
-# NO commands here!
 
+# install "submake_target" when installing everything.
 install: submake_install
-# NO commands here!
 
 submake_target: file.h
 	@touch submake_target
 
 submake_install: submake_target
 	@mkdir -p ${DESTDIR}/${datadir}
-	@$(INSTALL) -m 644 submake_target ${DESTDIR}/${datadir}
+	@$(INSTALL) -m 644 submake_target ${DESTDIR}/${datadir}/
+###
 
   WRONG:
 
+###
 install: submake_target
 	@mkdir -p ${DESTDIR}/${datadir}
 	@$(INSTALL) -m 644 submake_target ${DESTDIR}/${datadir}
+###
 
 This practice lets you extend the framework to data files or any other
 kind of file that is not supported by boilermake.
@@ -114,4 +120,5 @@ kind of file that is not supported by boilermake.
 Example Test Application
 ------------------------
 The test-app directory contains a simple example main.mk with several
-submakefiles, illustrating how to build a small sample application.
+submakefiles, illustrating how to build a small sample application
+that builds and links to a static library.
