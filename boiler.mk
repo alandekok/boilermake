@@ -50,13 +50,17 @@ all clean:
 # are "foo.lo", not "foo.o".  Compilers are "libtool ... cc", not "cc".
 #
 ifeq "${LIBTOOL}" ""
-OBJ_EXT = o
+OBJ_EXT := o
 PROGRAM_CC = ${CC}
 PROGRAM_CXX = ${CXX}
 else
-OBJ_EXT = lo
+OBJ_EXT := lo
 PROGRAM_CC = ${LIBTOOL} --mode=compile ${CC}
 PROGRAM_CXX = ${LIBTOOL} --mode=compile ${CXX}
+
+ifneq "${libdir}" ""
+    LIBTOOL_RPATH := -rpath ${libdir}
+endif
 endif
 
 ifeq "${INSTALL}" ""
@@ -253,9 +257,9 @@ define ADD_TARGET_RULE.la
         # there are any C++ sources for this target, use the C++ compiler.
         # For all other targets, default to using the C compiler.
         ifneq "$$(strip $$(filter $${CXX_SRC_EXTS},$${${1}_SOURCES}))" ""
-            ${1}: TGT_LINKER = ${LIBTOOL} --mode=link -module $${CXX}
+            ${1}: TGT_LINKER = ${LIBTOOL} --mode=link -module $${LIBTOOL_RPATH} $${CXX}
         else
-            ${1}: TGT_LINKER = ${LIBTOOL} --mode=link -module $${CC}
+            ${1}: TGT_LINKER = ${LIBTOOL} --mode=link -module $${LIBTOOL_RPATH} $${CC}
         endif
     endif
 
