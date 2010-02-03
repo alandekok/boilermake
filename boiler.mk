@@ -59,7 +59,9 @@ PROGRAM_CC = ${LIBTOOL} --mode=compile ${CC}
 PROGRAM_CXX = ${LIBTOOL} --mode=compile ${CXX}
 
 ifneq "${libdir}" ""
-    LIBTOOL_RPATH := -rpath ${libdir}
+    LIBTOOL_RPATH := -rpath ${libdir} -export-dynamic
+else
+    LIBTOOL_RPATH := -static
 endif
 endif
 
@@ -257,9 +259,9 @@ define ADD_TARGET_RULE.la
         # there are any C++ sources for this target, use the C++ compiler.
         # For all other targets, default to using the C compiler.
         ifneq "$$(strip $$(filter $${CXX_SRC_EXTS},$${${1}_SOURCES}))" ""
-            ${1}: TGT_LINKER = ${LIBTOOL} --mode=link -module $${LIBTOOL_RPATH} $${CXX}
+            ${1}: TGT_LINKER = ${LIBTOOL} --mode=link $${CXX} $${LIBTOOL_RPATH}
         else
-            ${1}: TGT_LINKER = ${LIBTOOL} --mode=link -module $${LIBTOOL_RPATH} $${CC}
+            ${1}: TGT_LINKER = ${LIBTOOL} --mode=link $${CC} $${LIBTOOL_RPATH}
         endif
     endif
 
