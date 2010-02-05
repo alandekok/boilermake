@@ -304,7 +304,7 @@ define ADD_INSTALL_RULE.exe
 
     $${DESTDIR}/$${${1}_INSTALLDIR}/${1}: ${1}
 	@mkdir -p $${DESTDIR}/$${${1}_INSTALLDIR}
-	$$(strip $(LIBTOOL) --mode=install $${INSTALL} -m 755 ${1} $${DESTDIR}/$${${1}_INSTALLDIR}/)
+	$$(strip $(LIBTOOL) --mode=install $${INSTALL} -c -m 755 ${1} $${DESTDIR}/$${${1}_INSTALLDIR}/)
 	$${${1}_POSTINSTALL}
 endef
 
@@ -318,7 +318,7 @@ define ADD_INSTALL_RULE.la
 
     $${DESTDIR}/$${${1}_INSTALLDIR}/${1}: ${1}
 	@mkdir -p $${DESTDIR}/$${${1}_INSTALLDIR}
-	$$(strip $(LIBTOOL) --mode=install $${INSTALL} -m 755 ${1} $${DESTDIR}/$${${1}_INSTALLDIR}/)
+	$$(strip $(LIBTOOL) --mode=install $${INSTALL} -c -m 755 ${1} $${DESTDIR}/$${${1}_INSTALLDIR}/)
 	$${${1}_POSTINSTALL}
 endef
 
