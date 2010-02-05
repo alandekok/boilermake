@@ -204,9 +204,9 @@ endef
 #   USE WITH EVAL
 #
 define ADD_INSTALL_RULE.exe
-    install: $${DESTDIR}/$${${1}_INSTALLDIR}/${1}
+    install: $${DESTDIR}/$${${1}_INSTALLDIR}/$$(notdir ${1})
 
-    $${DESTDIR}/$${${1}_INSTALLDIR}/${1}: ${1}
+    $${DESTDIR}/$${${1}_INSTALLDIR}/$$(notdir ${1}): ${1}
 	@mkdir -p $${DESTDIR}/$${${1}_INSTALLDIR}
 	$$(strip $${INSTALL} -c -m 755 ${1} $${DESTDIR}/$${${1}_INSTALLDIR}/)
 	$${${1}_POSTINSTALL}
@@ -218,9 +218,9 @@ endef
 #   USE WITH EVAL
 #
 define ADD_INSTALL_RULE.a
-    install: $${DESTDIR}/$${${1}_INSTALLDIR}/${1}
+    install: $${DESTDIR}/$${${1}_INSTALLDIR}/$$(notdir ${1})
 
-    $${DESTDIR}/$${${1}_INSTALLDIR}/${1}: ${1}
+    $${DESTDIR}/$${${1}_INSTALLDIR}/$$(notdir ${1}): ${1}
 	@mkdir -p $${DESTDIR}/$${${1}_INSTALLDIR}
 	$$(strip $${INSTALL} -c -m 755 ${1} $${DESTDIR}/$${${1}_INSTALLDIR}/)
 	$${${1}_POSTINSTALL}
@@ -235,9 +235,9 @@ endef
 define ADD_INSTALL_RULE.man
     TGT_MANPATH := $${DESTDIR}/$${mandir}/man$$(subst .,,$$(suffix ${1}))
 
-    install: $${TGT_MANPATH}/${1}
+    install: $${TGT_MANPATH}/$$(notdir ${1})
 
-    $${TGT_MANPATH}/${1}: ${1}
+    $${TGT_MANPATH}/$$(notdir ${1}): ${1}
 	@mkdir -p $${TGT_MANPATH}/
 	$$(strip $${INSTALL} -c -m 755 ${1} $${TGT_MANPATH}/)
 endef
@@ -300,9 +300,9 @@ endef
 #   USE WITH EVAL
 #
 define ADD_INSTALL_RULE.exe
-    install: $${DESTDIR}/$${${1}_INSTALLDIR}/${1}
+    install: $${DESTDIR}/$${${1}_INSTALLDIR}/$$(notdir ${1})
 
-    $${DESTDIR}/$${${1}_INSTALLDIR}/${1}: ${1}
+    $${DESTDIR}/$${${1}_INSTALLDIR}/$$(notdir ${1}): ${1}
 	@mkdir -p $${DESTDIR}/$${${1}_INSTALLDIR}
 	$$(strip $(LIBTOOL) --mode=install $${INSTALL} -c -m 755 ${1} $${DESTDIR}/$${${1}_INSTALLDIR}/)
 	$${${1}_POSTINSTALL}
@@ -314,9 +314,9 @@ endef
 #   USE WITH EVAL
 #
 define ADD_INSTALL_RULE.la
-    install: $${DESTDIR}/$${${1}_INSTALLDIR}/${1}
+    install: $${DESTDIR}/$${${1}_INSTALLDIR}/$$(notdir ${1})
 
-    $${DESTDIR}/$${${1}_INSTALLDIR}/${1}: ${1}
+    $${DESTDIR}/$${${1}_INSTALLDIR}/$$(notdir ${1}): ${1}
 	@mkdir -p $${DESTDIR}/$${${1}_INSTALLDIR}
 	$$(strip $(LIBTOOL) --mode=install $${INSTALL} -c -m 755 ${1} $${DESTDIR}/$${${1}_INSTALLDIR}/)
 	$${${1}_POSTINSTALL}
