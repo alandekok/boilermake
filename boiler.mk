@@ -23,23 +23,21 @@ $(error Your version of GNU Make is too old.  We need at least $(gnu_need))
 endif
 
 # If this ISN'T the top-level Makefile, then find out where it is
-# and call it recursively.  This is the ONLY recursive use of "make"
-# in the framework.  It exists ONLY to allow people to run "make"
-# from a subdirectory.
+# and set the "root ref" variable.  If we're at the top, set the root ref
+# to be empty.
 #
-ifneq "$(dir $(lastword $(MAKEFILE_LIST)))" "./"
+RR := $(dir $(lastword $(MAKEFILE_LIST)))
+ifeq "${RR}" "./"
+  RR := 
+else
+  RR := $(patsubst %//,%/,${RR})
+endif
 
 root := $(patsubst ${CURDIR}/%,%,$(abspath $(dir $(lastword $(MAKEFILE_LIST)))))
-subdir := $(subst ${root}/,,${PWD})
-
-# Catch the common installation targets.
-all clean targets ${ALL_TARGETS}:
-	@$(MAKE) -C ${root} SUBDIR=${subdir} $@
-
-else
-
-# We are in the top-level directory.  Do non-recursive Make.
-#
+SUBDIR := $(subst ${root}/,,${PWD})
+ifeq "${root}" "${SUBDIR}"
+    SUBDIR :=
+endif
 
 # Put these targets first, so that submakefiles can define their own
 # targets without affecting the default target for "make".
@@ -384,10 +382,10 @@ define INCLUDE_SUBMAKEFILE
 
     # Ensure that valid values are set for BUILD_DIR and TARGET_DIR.
     ifeq "$$(strip $${BUILD_DIR})" ""
-        BUILD_DIR := build
+        BUILD_DIR := ${RR}build
     endif
     ifeq "$$(strip $${TARGET_DIR})" ""
-        TARGET_DIR := .
+        TARGET_DIR := ${RR}.
     endif
 
     # Define "local directory" and "build directory" targets for
@@ -541,15 +539,11 @@ define INCLUDE_SUBMAKEFILE
 
     # If we're about to change targets, create the rules for the target
     ifneq "$${TGT}" "$$(call PEEK,$${TGT_STACK})"
-        # If we're building in the root, DIR==DIR, and we add the target.
-        # if we're building an a subdirectory, and delete/add of SUBDIR
-        # to DIR==DIR, then we're building in the RIGHT subdirectory.
-        #
-        # Building in a subdirectory means building ONLY the targets
-        # in that directory, BUT also building their dependencies
-        # It also means cleaning ONLY the targets in the subdirectory.
-        #
-        ifeq "$$(abspath $${DIR})" "$$(abspath $${SUBDIR})$$(subst _xyz$$(abspath $${SUBDIR}),,_xyz$$(abspath $${DIR}))"
+        # If the current directory is the a subdir of the one we're
+        # building in, then build it.  We check for a subdir by
+        # adding "_xyz" to the directory, and then substituting "_xyxROOT"
+        # with ROOT.  If the result is DIR, then we're in a subdir.
+        ifeq "$$(abspath $${DIR})" "$$(abspath ${root}/$${SUBDIR})$$(subst _xyz$$(abspath ${root}/$${SUBDIR}),,_xyz$$(abspath $${DIR}))"
             ALL_TGTS += $${TGT}
 
             # Add the target to the default list of targets to be made
@@ -643,11 +637,11 @@ MD_FLAGS := -MD
 
 # Include the main user-supplied submakefile. This also recursively includes
 # all other user-supplied submakefiles.
-$(eval $(call INCLUDE_SUBMAKEFILE,main.mk))
+$(eval $(call INCLUDE_SUBMAKEFILE,${RR}main.mk))
 
 # Perform post-processing on global variables as needed.
 DEFS := $(addprefix -D,${DEFS})
-INCDIRS := $(addprefix -I,$(call CANONICAL_PATH,${INCDIRS}))
+INCDIRS := $(addprefix -I,$(call CANONICAL_PATH,${RR}${INCDIRS}))
 
 # Add pattern rule(s) for creating compiled object code from C source.
 $(foreach EXT,${C_SRC_EXTS},\
@@ -660,5 +654,3 @@ $(foreach EXT,${CXX_SRC_EXTS},\
 # Informational, so you can see which targets are available for building.
 targets:
 	@echo ${ALL_TGTS}
-
-endif
