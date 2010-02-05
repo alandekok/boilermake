@@ -403,16 +403,16 @@ define INCLUDE_SUBMAKEFILE
     d := $(patsubst %/,%,$(dir ${1}))
     b := $(patsubst %/,%,${BUILD_DIR}/$(dir ${1}))
 
-    include ${1}
-
-    # Initialize internal local variables.
-    OBJS :=
-
     # A directory stack is maintained so that the correct paths are used as we
     # recursively include all submakefiles. Get the makefile's directory and
     # push it onto the stack.
     DIR := $(call CANONICAL_PATH,$(dir ${1}))
     DIR_STACK := $$(call PUSH,$${DIR_STACK},$${DIR})
+
+    include ${1}
+
+    # Initialize internal local variables.
+    OBJS :=
 
     # Determine which target this makefile's variables apply to. A stack is
     # used to keep track of which target is the "current" target as we
