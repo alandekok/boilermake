@@ -498,7 +498,7 @@ static int run_command(command_t *cmd_data, count_chars *cc)
  * print configuration
  * shlibpath_var is used in configure.
  */
-static void print_config()
+static void print_config(void)
 {
 #ifdef LD_RUN_PATH
     printf("runpath_var=%s\n", LD_RUN_PATH);
