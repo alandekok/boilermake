@@ -204,9 +204,9 @@ endef
 #   USE WITH EVAL
 #
 define ADD_INSTALL_RULE.exe
-    install: $${DESTDIR}/$${${1}_INSTALLDIR}/$$(notdir ${1})
+    install: $${DESTDIR}/$${${1}_INSTALLDIR}/$(notdir ${1})
 
-    $${DESTDIR}/$${${1}_INSTALLDIR}/$$(notdir ${1}): ${1}
+    $${DESTDIR}/$${${1}_INSTALLDIR}/$(notdir ${1}): ${1}
 	@mkdir -p $${DESTDIR}/$${${1}_INSTALLDIR}
 	$$(strip $${INSTALL} -c -m 755 ${1} $${DESTDIR}/$${${1}_INSTALLDIR}/)
 	$${${1}_POSTINSTALL}
@@ -218,9 +218,9 @@ endef
 #   USE WITH EVAL
 #
 define ADD_INSTALL_RULE.a
-    install: $${DESTDIR}/$${${1}_INSTALLDIR}/$$(notdir ${1})
+    install: $${DESTDIR}/$${${1}_INSTALLDIR}/$(notdir ${1})
 
-    $${DESTDIR}/$${${1}_INSTALLDIR}/$$(notdir ${1}): ${1}
+    $${DESTDIR}/$${${1}_INSTALLDIR}/$(notdir ${1}): ${1}
 	@mkdir -p $${DESTDIR}/$${${1}_INSTALLDIR}
 	$$(strip $${INSTALL} -c -m 755 ${1} $${DESTDIR}/$${${1}_INSTALLDIR}/)
 	$${${1}_POSTINSTALL}
@@ -235,9 +235,9 @@ endef
 define ADD_INSTALL_RULE.man
     TGT_MANPATH := $${DESTDIR}/$${mandir}/man$$(subst .,,$$(suffix ${1}))
 
-    install: $${TGT_MANPATH}/$$(notdir ${1})
+    install: $${TGT_MANPATH}/$(notdir ${1})
 
-    $${TGT_MANPATH}/$$(notdir ${1}): ${1}
+    $${TGT_MANPATH}/$(notdir ${1}): ${1}
 	@mkdir -p $${TGT_MANPATH}/
 	$$(strip $${INSTALL} -c -m 755 ${1} $${TGT_MANPATH}/)
 endef
@@ -257,9 +257,9 @@ define ADD_TARGET_RULE.la
         # there are any C++ sources for this target, use the C++ compiler.
         # For all other targets, default to using the C compiler.
         ifneq "$$(strip $$(filter $${CXX_SRC_EXTS},$${${1}_SOURCES}))" ""
-            ${1}: TGT_LINKER = ${LIBTOOL} --mode=link $${CXX} $${LIBTOOL_RPATH}
+            ${1}: TGT_LINKER = $${LIBTOOL} --mode=link $${CXX} $${LIBTOOL_RPATH}
         else
-            ${1}: TGT_LINKER = ${LIBTOOL} --mode=link $${CC} $${LIBTOOL_RPATH}
+            ${1}: TGT_LINKER = $${LIBTOOL} --mode=link $${CC} $${LIBTOOL_RPATH}
         endif
     endif
 
@@ -281,9 +281,9 @@ define ADD_TARGET_RULE.exe
         # there are any C++ sources for this target, use the C++ compiler.
         # For all other targets, default to using the C compiler.
         ifneq "$$(strip $$(filter $${CXX_SRC_EXTS},$${${1}_SOURCES}))" ""
-            ${1}: TGT_LINKER = ${LIBTOOL} --mode=link $${CXX}
+            ${1}: TGT_LINKER = $${LIBTOOL} --mode=link $${CXX}
         else
-            ${1}: TGT_LINKER = ${LIBTOOL} --mode=link $${CC}
+            ${1}: TGT_LINKER = $${LIBTOOL} --mode=link $${CC}
         endif
     endif
 
@@ -300,9 +300,9 @@ endef
 #   USE WITH EVAL
 #
 define ADD_INSTALL_RULE.exe
-    install: $${DESTDIR}/$${${1}_INSTALLDIR}/$$(notdir ${1})
+    install: $${DESTDIR}/$${${1}_INSTALLDIR}/$(notdir ${1})
 
-    $${DESTDIR}/$${${1}_INSTALLDIR}/$$(notdir ${1}): ${1}
+    $${DESTDIR}/$${${1}_INSTALLDIR}/$(notdir ${1}): ${1}
 	@mkdir -p $${DESTDIR}/$${${1}_INSTALLDIR}
 	$$(strip $(LIBTOOL) --mode=install $${INSTALL} -c -m 755 ${1} $${DESTDIR}/$${${1}_INSTALLDIR}/)
 	$${${1}_POSTINSTALL}
@@ -314,9 +314,9 @@ endef
 #   USE WITH EVAL
 #
 define ADD_INSTALL_RULE.la
-    install: $${DESTDIR}/$${${1}_INSTALLDIR}/$$(notdir ${1})
+    install: $${DESTDIR}/$${${1}_INSTALLDIR}/$(notdir ${1})
 
-    $${DESTDIR}/$${${1}_INSTALLDIR}/$$(notdir ${1}): ${1}
+    $${DESTDIR}/$${${1}_INSTALLDIR}/$(notdir ${1}): ${1}
 	@mkdir -p $${DESTDIR}/$${${1}_INSTALLDIR}
 	$$(strip $(LIBTOOL) --mode=install $${INSTALL} -c -m 755 ${1} $${DESTDIR}/$${${1}_INSTALLDIR}/)
 	$${${1}_POSTINSTALL}
@@ -385,7 +385,9 @@ define INCLUDE_SUBMAKEFILE
         BUILD_DIR := ${RR}build
     endif
     ifeq "$$(strip $${TARGET_DIR})" ""
-        TARGET_DIR := ${RR}.
+        TARGET_DIR := ${RR}
+    else
+        # FIXME: Add ${RR} to TARGET_DIR!
     endif
 
     # Define "local directory" and "build directory" targets for
@@ -437,7 +439,7 @@ define INCLUDE_SUBMAKEFILE
             TARGET := $$(call LIBTOOL_ENDINGS,$${TARGET})
         endif
 
-        TGT := $$(strip $${TARGET_DIR}/$${TARGET})
+        TGT := $$(strip $${TARGET_DIR}$${TARGET})
         $${TGT}: TGT_LDFLAGS := $${TGT_LDFLAGS}
         $${TGT}: TGT_LDLIBS := $${TGT_LDLIBS}
         $${TGT}: TGT_LINKER := $${TGT_LINKER}
@@ -450,7 +452,7 @@ define INCLUDE_SUBMAKEFILE
             TGT_PREREQS := $$(call LIBTOOL_ENDINGS,$${TGT_PREREQS})
         endif
 
-        $${TGT}_PREREQS := $$(addprefix $${TARGET_DIR}/,$${TGT_PREREQS})
+        $${TGT}_PREREQS := $$(addprefix $${TARGET_DIR},$${TGT_PREREQS})
         $${TGT}_PRLIBS := $$(filter %.a %.so %.la,$${TGT_PREREQS})
         $${TGT}_DEPS :=
         $${TGT}_OBJS :=
