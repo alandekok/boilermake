@@ -202,3 +202,12 @@ TGT_PREREQS
    executable target may depend on one or more static library targets defined
    elsewhere. This variable can be used to tell boilermake that the executable
    depends on those libraries.
+
+INSTALL
+-------
+  Should be defined once, in the "main.mk" file.  This is the path to a
+  BSD compatible "install" program.  We include the MIT "install-sh" as
+  and example.
+
+  You will also need to define the common definitions "prefix", "bindir"
+  "libdir", etc.  See "test-app/main.mk" for examples.

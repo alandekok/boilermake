@@ -118,6 +118,42 @@ define ADD_TARGET_RULE.la
 $(error Please define LIBTOOL and re-build)
 endef
 
+# ADD_INSTALL_RULE.* - Parameterized "functions" that adds a new
+#   installation to the Makefile.  There should be one ADD_INSTALL_RULE
+#   definition for each type of target that is used in the build.
+#
+#   New rules can be added by copying one of the existing ones, and
+#   replacing the line containing $$(strip ...)
+#
+
+# ADD_INSTALL_RULE.exe - Parameterized "function" that adds a new rule
+#   and phony target for installing an executable.
+#
+#   USE WITH EVAL
+#
+define ADD_INSTALL_RULE.exe
+    install: $${DESTDIR}/$${${1}_INSTALLDIR}/$(notdir ${1})
+
+    $${DESTDIR}/$${${1}_INSTALLDIR}/$(notdir ${1}): ${1}
+	@mkdir -p $${DESTDIR}/$${${1}_INSTALLDIR}
+	$$(strip $${INSTALL} -c -m 755 ${1} $${DESTDIR}/$${${1}_INSTALLDIR}/)
+	$${${1}_POSTINSTALL}
+endef
+
+# ADD_INSTALL_RULE.a - Parameterized "function" that adds a new rule
+#   and phony target for installing a static library
+#
+#   USE WITH EVAL
+#
+define ADD_INSTALL_RULE.a
+    install: $${DESTDIR}/$${${1}_INSTALLDIR}/$(notdir ${1})
+
+    $${DESTDIR}/$${${1}_INSTALLDIR}/$(notdir ${1}): ${1}
+	@mkdir -p $${DESTDIR}/$${${1}_INSTALLDIR}
+	$$(strip $${INSTALL} -c -m 755 ${1} $${DESTDIR}/$${${1}_INSTALLDIR}/)
+	$${${1}_POSTINSTALL}
+endef
+
 # CANONICAL_PATH - Given one or more paths, converts the paths to the canonical
 #   form. The canonical form is the path, relative to the project's top-level
 #   directory (the directory from which "make" is run), and without
@@ -168,6 +204,8 @@ define INCLUDE_SUBMAKEFILE
     TGT_POSTCLEAN :=
     TGT_POSTMAKE :=
     TGT_PREREQS :=
+    TGT_POSTINSTALL :=
+    TGT_INSTALLDIR := ..
 
     SOURCES :=
     SRC_CFLAGS :=
@@ -216,12 +254,26 @@ define INCLUDE_SUBMAKEFILE
         $${TGT}: TGT_POSTMAKE := $${TGT_POSTMAKE}
         $${TGT}_LINKER := $${TGT_LINKER}
         $${TGT}_POSTCLEAN := $${TGT_POSTCLEAN}
+        $${TGT}_POSTINSTALL := $${TGT_POSTINSTALL}
         $${TGT}_PREREQS := $$(addprefix $${TARGET_DIR},$${TGT_PREREQS})
         $${TGT}_DEPS :=
         $${TGT}_OBJS :=
         $${TGT}_SOURCES :=
 
         $${TGT}_SUFFIX := $$(if $$(suffix $${TGT}),$$(suffix $${TGT}),.exe)
+
+        # Figure out which target rule to use for installation.
+        ifeq "$${$${TGT}_SUFFIX}" ".exe"
+            ifeq "$${TGT_INSTALLDIR}" ".."
+                TGT_INSTALLDIR := $${bindir}
+            endif
+        else 
+            ifeq "$${TGT_INSTALLDIR}" ".."
+                TGT_INSTALLDIR := $${libdir}
+            endif
+        endif
+
+        $${TGT}_INSTALLDIR := $${TGT_INSTALLDIR}
     else
         # The values defined by this makefile apply to the the "current" target
         # as determined by which target is at the top of the stack.
@@ -286,6 +338,14 @@ define INCLUDE_SUBMAKEFILE
 
             # Add the target to the default list of targets to be made
             all: $${TGT}
+
+            # do installs only if we have an installation program.
+            ifneq "${INSTALL}" ""
+                # add rules to install the target
+                ifneq "$${$${TGT}_INSTALLDIR}" ""
+                    $$(eval $$(call ADD_INSTALL_RULE$${$${TGT}_SUFFIX},$${TGT}))
+                endif
+            endif
 
             # add rules to clean the output files
             $$(eval $$(call ADD_CLEAN_RULE,$${TGT}))
@@ -370,6 +430,7 @@ ifeq "${RR}" "./"
   RR := 
 else
   RR := $(patsubst %//,%/,${RR})
+  LDFLAGS += -L${RR}
 endif
 
 root := $(patsubst ${CURDIR}/%,%,$(abspath $(dir $(lastword $(MAKEFILE_LIST)))))
@@ -392,8 +453,8 @@ TGT_STACK :=
 
 # Define the "all" target (which simply builds all user-defined targets) as the
 # default goal.
-.PHONY: all clean
-all clean:
+.PHONY: all clean install
+all clean install:
 
 # Include the main user-supplied submakefile. This also recursively includes
 # all other user-supplied submakefiles.
@@ -402,6 +463,17 @@ $(eval $(call INCLUDE_SUBMAKEFILE,${RR}main.mk))
 # Perform post-processing on global variables as needed.
 DEFS := $(addprefix -D,${DEFS})
 INCDIRS := $(addprefix -I,$(call CANONICAL_PATH,${RR}${INCDIRS}))
+
+# Give an error if we can't do "make install", rather than saying
+# "nothing to do".
+ifeq "${INSTALL}" ""
+install: install_ERROR
+
+.PHONY: install_ERROR
+install_ERROR:
+	@echo Please define INSTALL in order to enable the installation rules.
+	@exit 1
+endif
 
 # Add pattern rule(s) for creating compiled object code from C source.
 $(foreach EXT,${C_SRC_EXTS},\
