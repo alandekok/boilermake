@@ -151,10 +151,16 @@ define INCLUDE_SUBMAKEFILE
     # Ensure that valid values are set for BUILD_DIR and TARGET_DIR.
     ifeq "$$(strip $${BUILD_DIR})" ""
         BUILD_DIR := ${RR}build
+    else ifeq "${_BUILD_DIR}" ""
+        BUILD_DIR := ${RR}${BUILD_DIR}
     endif
     ifeq "$$(strip $${TARGET_DIR})" ""
-        TARGET_DIR := ${RR}.
+        TARGET_DIR := ${RR}
+    else ifeq "${_TARGET_DIR}" ""
+        TARGET_DIR := ${RR}${TARGET_DIR}/
     endif
+    _BUILD_DIR := yes
+    _TARGET_DIR := yes
 
     # Determine which target this makefile's variables apply to. A stack is
     # used to keep track of which target is the "current" target as we
@@ -162,7 +168,7 @@ define INCLUDE_SUBMAKEFILE
     ifneq "$$(strip $${TARGET})" ""
         # This makefile defined a new target. Target variables defined by this
         # makefile apply to this new target. Initialize the target's variables.
-        TGT := $$(strip $${TARGET_DIR}/$${TARGET})
+        TGT := $$(strip $${TARGET_DIR}$${TARGET})
         ALL_TGTS += $${TGT}
         $${TGT}: TGT_LDFLAGS := $${TGT_LDFLAGS}
         $${TGT}: TGT_LDLIBS := $${TGT_LDLIBS}
@@ -170,7 +176,7 @@ define INCLUDE_SUBMAKEFILE
         $${TGT}: TGT_POSTMAKE := $${TGT_POSTMAKE}
         $${TGT}_LINKER := $${TGT_LINKER}
         $${TGT}_POSTCLEAN := $${TGT_POSTCLEAN}
-        $${TGT}_PREREQS := $$(addprefix $${TARGET_DIR}/,$${TGT_PREREQS})
+        $${TGT}_PREREQS := $$(addprefix $${TARGET_DIR},$${TGT_PREREQS})
         $${TGT}_DEPS :=
         $${TGT}_OBJS :=
         $${TGT}_SOURCES :=
