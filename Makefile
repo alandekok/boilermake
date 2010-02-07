@@ -39,43 +39,83 @@ $${BUILD_DIR}/%.o: ${1}
 	${2}
 endef
 
-# ADD_TARGET_RULE - Parameterized "function" that adds a new target to the
-#   Makefile. The target may be an executable or a library. The two allowable
-#   types of targets are distinguished based on the name: library targets must
-#   end with the traditional ".a" extension.
+# ADD_TARGET_RULE.* - Parameterized "functions" that adds a new target to the
+#   Makefile.  There should be one ADD_TARGET_RULE definition for each
+#   type of target that is used in the build.  
+#
+#   New rules can be added by copying one of the existing ones, and
+#   replacing the line containing $$(strip ...)
+#
+
+# ADD_TARGET_RULE.exe - Build an executable target.
 #
 #   USE WITH EVAL
 #
-define ADD_TARGET_RULE
-    ifeq "$$(suffix ${1})" ".a"
-        # Add a target for creating a static library.
-        ${1}: $${${1}_OBJS}
+define ADD_TARGET_RULE.exe
+    # Add a target for linking an executable. First, attempt to select the
+    # appropriate front-end to use for linking. This might not choose the
+    # right one (e.g. if linking with a C++ static library, but all other
+    # sources are C sources), so the user makefile is allowed to specify a
+    # linker to be used for each target.
+    ifeq "$$(strip $${${1}_LINKER})" ""
+        # No linker was explicitly specified to be used for this target. If
+        # there are any C++ sources for this target, use the C++ compiler.
+        # For all other targets, default to using the C compiler.
+        ifneq "$$(strip $$(filter $${CXX_SRC_EXTS},$${${1}_SOURCES}))" ""
+            ${1}: TGT_LINKER = $${CXX}
+        else
+            ${1}: TGT_LINKER = $${CC}
+        endif
+    endif
+
+    ${1}: $${${1}_OBJS} $${${1}_PREREQS}
+	    @mkdir -p $$(dir $$@)
+	    $$(strip $${TGT_LINKER} -o ${1} $${LDFLAGS} $${TGT_LDFLAGS} \
+	        $${${1}_OBJS} $${LDLIBS} $${${1}_PRLIBS} $${TGT_LDLIBS})
+	    $${TGT_POSTMAKE}
+endef
+
+# ADD_TARGET_RULE.a - Build a static library target.
+#
+#   USE WITH EVAL
+#
+define ADD_TARGET_RULE.a
+    ${1}: $${${1}_OBJS} $${${1}_PREREQS}
 	    @mkdir -p $$(dir $$@)
 	    $$(strip $${AR} $${ARFLAGS} ${1} $${${1}_OBJS})
 	    $${TGT_POSTMAKE}
-    else
-        # Add a target for linking an executable. First, attempt to select the
-        # appropriate front-end to use for linking. This might not choose the
-        # right one (e.g. if linking with a C++ static library, but all other
-        # sources are C sources), so the user makefile is allowed to specify a
-        # linker to be used for each target.
-        ifeq "$$(strip $${${1}_LINKER})" ""
-            # No linker was explicitly specified to be used for this target. If
-            # there are any C++ sources for this target, use the C++ compiler.
-            # For all other targets, default to using the C compiler.
-            ifneq "$$(strip $$(filter $${CXX_SRC_EXTS},$${${1}_SOURCES}))" ""
-                ${1}: TGT_LINKER = $${CXX}
-            else
-                ${1}: TGT_LINKER = $${CC}
-            endif
-        endif
+endef
 
-        ${1}: $${${1}_OBJS} $${${1}_PREREQS}
-	    @mkdir -p $$(dir $$@)
-	    $$(strip $${TGT_LINKER} -o ${1} $${LDFLAGS} $${TGT_LDFLAGS} \
-	        $${${1}_OBJS} $${LDLIBS} $${TGT_LDLIBS})
-	    $${TGT_POSTMAKE}
-    endif
+# ADD_TARGET_RULE.so - Build a ".so" target.
+#
+#   USE WITH EVAL
+#
+define ADD_TARGET_RULE.so
+$(error Please add rules to build a ".so" file.)
+endef
+
+# ADD_TARGET_RULE.dll - Build a ".dll" target.
+#
+#   USE WITH EVAL
+#
+define ADD_TARGET_RULE.dll
+$(error Please add rules to build a ".dll" file.)
+endef
+
+# ADD_TARGET_RULE.dylib - Build a ".dylib" target.
+#
+#   USE WITH EVAL
+#
+define ADD_TARGET_RULE.dylib
+$(error Please add rules to build a ".dylib" file.)
+endef
+
+# ADD_TARGET_RULE.la - Build a ".la" target.
+#
+#   USE WITH EVAL
+#
+define ADD_TARGET_RULE.la
+$(error Please define LIBTOOL and re-build)
 endef
 
 # CANONICAL_PATH - Given one or more paths, converts the paths to the canonical
@@ -180,6 +220,8 @@ define INCLUDE_SUBMAKEFILE
         $${TGT}_DEPS :=
         $${TGT}_OBJS :=
         $${TGT}_SOURCES :=
+
+        $${TGT}_SUFFIX := $$(if $$(suffix $${TGT}),$$(suffix $${TGT}),.exe)
     else
         # The values defined by this makefile apply to the the "current" target
         # as determined by which target is at the top of the stack.
@@ -253,7 +295,7 @@ define INCLUDE_SUBMAKEFILE
         # to the build system.
 
         # add rules to build the target
-        $$(eval $$(call ADD_TARGET_RULE,$${TGT}))
+        $$(eval $$(call ADD_TARGET_RULE$${$${TGT}_SUFFIX},$${TGT}))
 
         # include the dependency files of the target
         $$(eval -include $${$${TGT}_DEPS})
