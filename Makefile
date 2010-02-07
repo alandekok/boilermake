@@ -150,10 +150,10 @@ define INCLUDE_SUBMAKEFILE
 
     # Ensure that valid values are set for BUILD_DIR and TARGET_DIR.
     ifeq "$$(strip $${BUILD_DIR})" ""
-        BUILD_DIR := build
+        BUILD_DIR := ${RR}build
     endif
     ifeq "$$(strip $${TARGET_DIR})" ""
-        TARGET_DIR := .
+        TARGET_DIR := ${RR}.
     endif
 
     # Determine which target this makefile's variables apply to. A stack is
@@ -226,6 +226,33 @@ define INCLUDE_SUBMAKEFILE
 
     # Reset the "current" target to it's previous value.
     TGT_STACK := $$(call POP,$${TGT_STACK})
+
+    # If we're about to change targets, create the rules for the target
+    ifneq "$${TGT}" "$$(call PEEK,$${TGT_STACK})"
+        # If the current directory is the a subdir of the one we're
+        # building in, then build it.  We check for a subdir by
+        # adding "_xyz" to the directory, and then substituting "_xyxROOT"
+        # with ROOT.  If the result is DIR, then we're in a subdir.
+        ifeq "$$(abspath $${DIR})" "$$(abspath ${root}/$${SUBDIR})$$(subst _xyz$$(abspath ${root}/$${SUBDIR}),,_xyz$$(abspath $${DIR}))"
+            ALL_TGTS += $${TGT}
+
+            # Add the target to the default list of targets to be made
+            all: $${TGT}
+
+            # add rules to clean the output files
+            $$(eval $$(call ADD_CLEAN_RULE,$${TGT}))
+        endif
+
+        # For dependency tracking to work, we still add all targets
+        # to the build system.
+
+        # add rules to build the target
+        $$(eval $$(call ADD_TARGET_RULE,$${TGT}))
+
+        # include the dependency files of the target
+        $$(eval -include $${$${TGT}_DEPS})
+    endif
+
     TGT := $$(call PEEK,$${TGT_STACK})
 
     # Reset the "current" directory to it's previous value.
@@ -286,6 +313,23 @@ ifneq "${MIN_MAKE_VERSION}" "$(call MIN,${MIN_MAKE_VERSION},${MAKE_VERSION})"
     $(error ${MIN_MAKE_VER_MSG})
 endif
 
+# If this ISN'T the top-level Makefile, then find out where it is
+# and set the "root ref" variable.  If we're at the top, set the root ref
+# to be empty.
+#
+RR := $(dir $(lastword $(MAKEFILE_LIST)))
+ifeq "${RR}" "./"
+  RR := 
+else
+  RR := $(patsubst %//,%/,${RR})
+endif
+
+root := $(patsubst ${CURDIR}/%,%,$(abspath $(dir $(lastword $(MAKEFILE_LIST)))))
+SUBDIR := $(subst ${root}/,,${PWD})
+ifeq "${root}" "${SUBDIR}"
+    SUBDIR :=
+endif
+
 # Define the source file extensions that we know how to handle.
 C_SRC_EXTS := %.c
 CXX_SRC_EXTS := %.C %.cc %.cp %.cpp %.CPP %.cxx %.c++
@@ -298,22 +342,18 @@ DIR_STACK :=
 INCDIRS :=
 TGT_STACK :=
 
+# Define the "all" target (which simply builds all user-defined targets) as the
+# default goal.
+.PHONY: all clean
+all clean:
+
 # Include the main user-supplied submakefile. This also recursively includes
 # all other user-supplied submakefiles.
-$(eval $(call INCLUDE_SUBMAKEFILE,main.mk))
+$(eval $(call INCLUDE_SUBMAKEFILE,${RR}main.mk))
 
 # Perform post-processing on global variables as needed.
 DEFS := $(addprefix -D,${DEFS})
-INCDIRS := $(addprefix -I,$(call CANONICAL_PATH,${INCDIRS}))
-
-# Define the "all" target (which simply builds all user-defined targets) as the
-# default goal.
-.PHONY: all
-all: ${ALL_TGTS}
-
-# Add a new target rule for each user-defined target.
-$(foreach TGT,${ALL_TGTS},\
-  $(eval $(call ADD_TARGET_RULE,${TGT})))
+INCDIRS := $(addprefix -I,$(call CANONICAL_PATH,${RR}${INCDIRS}))
 
 # Add pattern rule(s) for creating compiled object code from C source.
 $(foreach EXT,${C_SRC_EXTS},\
@@ -322,12 +362,3 @@ $(foreach EXT,${C_SRC_EXTS},\
 # Add pattern rule(s) for creating compiled object code from C++ source.
 $(foreach EXT,${CXX_SRC_EXTS},\
   $(eval $(call ADD_OBJECT_RULE,${EXT},$${COMPILE_CXX_CMDS})))
-
-# Add "clean" rules to remove all build-generated files.
-.PHONY: clean
-$(foreach TGT,${ALL_TGTS},\
-  $(eval $(call ADD_CLEAN_RULE,${TGT})))
-
-# Include generated rules that define additional (header) dependencies.
-$(foreach TGT,${ALL_TGTS},\
-  $(eval -include ${${TGT}_DEPS}))
