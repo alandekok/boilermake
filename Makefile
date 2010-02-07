@@ -24,7 +24,7 @@ define ADD_CLEAN_RULE
     clean: clean_${1}
     .PHONY: clean_${1}
     clean_${1}:
-	$$(strip rm -f ${1} $${${1}_OBJS:%.o=%.[doP]})
+	$$(strip rm -f ${1} ${${1}_OBJS} $${${1}_OBJS:%.${OBJ_EXT}=%.[doP]})
 	$${${1}_POSTCLEAN}
 endef
 
@@ -35,7 +35,7 @@ endef
 #   USE WITH EVAL
 #
 define ADD_OBJECT_RULE
-$${BUILD_DIR}/%.o: ${1}
+$${BUILD_DIR}/%.${OBJ_EXT}: ${1}
 	@mkdir -p $$(dir $$@)
 	${2}
 endef
@@ -161,6 +161,97 @@ define ADD_INSTALL_RULE.a
 	$${${1}_POSTINSTALL}
 endef
 
+#  If we're using libtool, re-define the target and installation
+#  rules, as the linking rules are different.
+#
+ifneq "${LIBTOOL}" ""
+define ADD_TARGET_RULE.la
+    # Add a target for linking an executable. First, attempt to select the
+    # appropriate front-end to use for linking. This might not choose the
+    # right one (e.g. if linking with a C++ static library, but all other
+    # sources are C sources), so the user makefile is allowed to specify a
+    # linker to be used for each target.
+    ifeq "$$(strip $${${1}_LINKER})" ""
+        # No linker was explicitly specified to be used for this target. If
+        # there are any C++ sources for this target, use the C++ compiler.
+        # For all other targets, default to using the C compiler.
+        ifneq "$$(strip $$(filter $${CXX_SRC_EXTS},$${${1}_SOURCES}))" ""
+            ${1}: TGT_LINKER = $${LIBTOOL} --mode=link $${CXX} $${LIBTOOL_RPATH}
+        else
+            ${1}: TGT_LINKER = $${LIBTOOL} --mode=link $${CC} $${LIBTOOL_RPATH}
+        endif
+    endif
+
+    ${1}: $${${1}_OBJS} $${${1}_PREREQS}
+	    @mkdir -p $$(dir $$@)
+	    $$(strip $${TGT_LINKER} -o ${1} $${LDFLAGS} $${TGT_LDFLAGS} \
+	        $${${1}_OBJS} $${LDLIBS} $${TGT_LDLIBS})
+	    $${TGT_POSTMAKE}
+endef
+
+define ADD_TARGET_RULE.exe
+    # Add a target for linking an executable. First, attempt to select the
+    # appropriate front-end to use for linking. This might not choose the
+    # right one (e.g. if linking with a C++ static library, but all other
+    # sources are C sources), so the user makefile is allowed to specify a
+    # linker to be used for each target.
+    ifeq "$$(strip $${${1}_LINKER})" ""
+        # No linker was explicitly specified to be used for this target. If
+        # there are any C++ sources for this target, use the C++ compiler.
+        # For all other targets, default to using the C compiler.
+        ifneq "$$(strip $$(filter $${CXX_SRC_EXTS},$${${1}_SOURCES}))" ""
+            ${1}: TGT_LINKER = $${LIBTOOL} --mode=link $${CXX}
+        else
+            ${1}: TGT_LINKER = $${LIBTOOL} --mode=link $${CC}
+        endif
+    endif
+
+    ${1}: $${${1}_OBJS} $${${1}_PREREQS}
+	    @mkdir -p $$(dir $$@)
+	    $$(strip $${TGT_LINKER} -o ${1} $${LDFLAGS} $${TGT_LDFLAGS} \
+	        $${${1}_OBJS} $${LDLIBS} $${${1}_PRLIBS} $${TGT_LDLIBS})
+	    $${TGT_POSTMAKE}
+endef
+
+# ADD_INSTALL_RULE.exe - Parameterized "function" that adds a new rule
+#   and phony target for installing an executable.
+#
+#   USE WITH EVAL
+#
+define ADD_INSTALL_RULE.exe
+    install: $${DESTDIR}/$${${1}_INSTALLDIR}/$(notdir ${1})
+
+    $${DESTDIR}/$${${1}_INSTALLDIR}/$(notdir ${1}): ${1}
+	@mkdir -p $${DESTDIR}/$${${1}_INSTALLDIR}
+	$$(strip $(LIBTOOL) --mode=install $${INSTALL} -c -m 755 ${1} $${DESTDIR}/$${${1}_INSTALLDIR}/)
+	$${${1}_POSTINSTALL}
+endef
+
+# ADD_INSTALL_RULE.la - Parameterized "function" that adds a new rule
+#   and phony target for installing a libtool library
+#
+#   USE WITH EVAL
+#
+define ADD_INSTALL_RULE.la
+    install: $${DESTDIR}/$${${1}_INSTALLDIR}/$(notdir ${1})
+
+    $${DESTDIR}/$${${1}_INSTALLDIR}/$(notdir ${1}): ${1}
+	@mkdir -p $${DESTDIR}/$${${1}_INSTALLDIR}
+	$$(strip $(LIBTOOL) --mode=install $${INSTALL} -c -m 755 ${1} $${DESTDIR}/$${${1}_INSTALLDIR}/)
+	$${${1}_POSTINSTALL}
+endef
+
+# end of libtool-specific target and install rules.
+endif
+
+
+# LIBTOOL_ENDINGS - Given a library ending in ".a" or ".so", replace that
+#   extension with ".la".
+#
+define LIBTOOL_ENDINGS
+$(patsubst %.a,%.la,$(patsubst %.so,%.la,${1}))
+endef
+
 # CANONICAL_PATH - Given one or more paths, converts the paths to the canonical
 #   form. The canonical form is the path, relative to the project's top-level
 #   directory (the directory from which "make" is run), and without
@@ -173,13 +264,13 @@ endef
 
 # COMPILE_C_CMDS - Commands for compiling C source code.
 define COMPILE_C_CMDS
-	$(strip ${CC} -o $@ -c ${MD_FLAGS} ${CFLAGS} ${SRC_CFLAGS} ${INCDIRS} \
+	$(strip ${PROGRAM_CC} -o $@ -c ${MD_FLAGS} ${CFLAGS} ${SRC_CFLAGS} ${INCDIRS} \
 	    ${SRC_INCDIRS} ${SRC_DEFS} ${DEFS} $<)
 endef
 
 # COMPILE_CXX_CMDS - Commands for compiling C++ source code.
 define COMPILE_CXX_CMDS
-	$(strip ${CXX} -o $@ -c ${MD_FLAGS} ${CXXFLAGS} ${SRC_CXXFLAGS} ${INCDIRS} \
+	$(strip ${PROGRAM_CXX} -o $@ -c ${MD_FLAGS} ${CXXFLAGS} ${SRC_CXXFLAGS} ${INCDIRS} \
 	    ${SRC_INCDIRS} ${SRC_DEFS} ${DEFS} $<)
 endef
 
@@ -239,6 +330,12 @@ define INCLUDE_SUBMAKEFILE
     # used to keep track of which target is the "current" target as we
     # recursively include other submakefiles.
     ifneq "$$(strip $${TARGET})" ""
+
+        ifneq "${LIBTOOL}" ""
+            TARGET := $$(call LIBTOOL_ENDINGS,$${TARGET})
+            TGT_PREREQS := $$(call LIBTOOL_ENDINGS,$${TGT_PREREQS})
+        endif
+
         # This makefile defined a new target. Target variables defined by this
         # makefile apply to this new target. Initialize the target's variables.
         TGT := $$(strip $${TARGET_DIR}$${TARGET})
@@ -300,13 +397,13 @@ define INCLUDE_SUBMAKEFILE
         # Convert the source file names to their corresponding object file
         # names.
         OBJS := $$(addprefix $${BUILD_DIR}/,\
-                   $$(addsuffix .o,$$(basename $${SOURCES})))
+                   $$(addsuffix .${OBJ_EXT},$$(basename $${SOURCES})))
 
         # Add the objects to the current target's list of objects, and create
         # target-specific variables for the objects based on any source
         # variables that were defined.
         $${TGT}_OBJS += $${OBJS}
-        $${TGT}_DEPS += $${OBJS:%.o=%.P}
+        $${TGT}_DEPS += $${OBJS:%.${OBJ_EXT}=%.P}
         $${OBJS}: SRC_CFLAGS := $${SRC_CFLAGS}
         $${OBJS}: SRC_CXXFLAGS := $${SRC_CXXFLAGS}
         $${OBJS}: SRC_DEFS := $$(addprefix -D,$${SRC_DEFS})
@@ -454,6 +551,25 @@ TGT_STACK :=
 # default goal.
 .PHONY: all clean install
 all clean install:
+
+# Automatically set some variables if we're using libtool.  Object files
+# are "foo.lo", not "foo.o".  Compilers are "libtool ... cc", not "cc".
+#
+ifeq "${LIBTOOL}" ""
+OBJ_EXT := o
+PROGRAM_CC = ${CC}
+PROGRAM_CXX = ${CXX}
+else
+OBJ_EXT := lo
+PROGRAM_CC = ${LIBTOOL} --mode=compile ${CC}
+PROGRAM_CXX = ${LIBTOOL} --mode=compile ${CXX}
+
+ifneq "${libdir}" ""
+    LIBTOOL_RPATH := -rpath ${libdir} -export-dynamic
+else
+    LIBTOOL_RPATH := -static
+endif
+endif
 
 # Include the main user-supplied submakefile. This also recursively includes
 # all other user-supplied submakefiles.
