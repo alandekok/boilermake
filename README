@@ -26,8 +26,9 @@ This main.mk instructs boilermake to build a program named foo by compiling and
 linking bar.c and baz.c. Again, this is just a *minimal* example. Additional
 variables recognized by boilermake can allow for pretty powerful and flexible
 builds. Even with this simple example, "#include" dependencies are
-automatically generated, a "clean" rule is generated, and all intermediate (.o)
-files are output under a directory named "build".
+automatically generated, a "clean" rule is generated, an "install" rule
+is generated, and all intermediate (.o) files are output under a directory
+named "build".
 
 Boilermake Variables
 --------------------
