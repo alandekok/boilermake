@@ -33,6 +33,8 @@ else
   RR := $(patsubst %//,%/,${RR})
 endif
 
+EVAL := info
+
 root := $(patsubst ${CURDIR}/%,%,$(abspath $(dir $(lastword $(MAKEFILE_LIST)))))
 SUBDIR := $(subst ${root}/,,${PWD})
 ifeq "${root}" "${SUBDIR}"
@@ -535,7 +537,6 @@ define INCLUDE_SUBMAKEFILE
                          $$(call QUALIFY_PATH,$${DIR},$${MK})))))
     endif
 
-
     # Reset the "current" target to it's previous value.
     TGT_STACK := $$(call POP,$${TGT_STACK})
 
@@ -548,24 +549,33 @@ define INCLUDE_SUBMAKEFILE
         ifeq "$$(abspath $${DIR})" "$$(abspath ${root}/$${SUBDIR})$$(subst _xyz$$(abspath ${root}/$${SUBDIR}),,_xyz$$(abspath $${DIR}))"
             ALL_TGTS += $${TGT}
 
+            ifneq "${EVAL}" "eval"
+                $$(info # )
+                $$(info # Rules for $${TGT})
+                $$(foreach x,LINKER POSTCLEAN POSTINSTALL PREREQS PRLIBS OBJS SOURCES INSTALLDIR MAN,$$(info $${TGT}_$${x} := $${$${TGT}_$${x}}))
+
+                 $$(info all: $${TGT})
+
+            endif
+
             # Add the target to the default list of targets to be made
             all: $${TGT}
 
             # add rules to clean the output files
-            $$(eval $$(call ADD_CLEAN_RULE,$${TGT}))
+            $$(${EVAL} $$(call ADD_CLEAN_RULE,$${TGT}))
         endif
 
         # For dependency tracking to work, we still add all targets
         # to the build system.
 
         # add rules to build the target
-        $$(eval $$(call ADD_TARGET_RULE$${$${TGT}_SUFFIX},$${TGT}))
+        $$(${EVAL} $$(call ADD_TARGET_RULE$${$${TGT}_SUFFIX},$${TGT}))
 
         # do installs only if we have an installation program.
         ifneq "${INSTALL}" ""
             # add rules to install the target
             ifneq "$${$${TGT}_INSTALLDIR}" ""
-                $$(eval $$(call ADD_INSTALL_RULE$${$${TGT}_SUFFIX},$${TGT}))
+                $$(${EVAL} $$(call ADD_INSTALL_RULE$${$${TGT}_SUFFIX},$${TGT}))
             endif
 
             # add rules to install the MAN pages.
@@ -575,12 +585,12 @@ define INCLUDE_SUBMAKEFILE
 
             ifneq "$${$${TGT}_MAN}" ""
                 $$(foreach MAN,$${$${TGT}_MAN},\
-                    $$(eval $$(call ADD_INSTALL_RULE.man,$${MAN})))
+                    $$(${EVAL} $$(call ADD_INSTALL_RULE.man,$${MAN})))
             endif
         endif
 
         # include the dependency files of the target
-        $$(eval -include $${$${TGT}_DEPS})
+        $$(${EVAL} -include $${$${TGT}_DEPS})
     endif
 
     TGT := $$(call PEEK,$${TGT_STACK})
