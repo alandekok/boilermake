@@ -36,8 +36,15 @@ endef
 #
 define ADD_OBJECT_RULE
 $${BUILD_DIR}/%.o: ${1}
+	@mkdir -p $$(dir $$@)
 	${2}
 endef
+
+%.P: %.d
+	@cp $< $@
+	@sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$$//' \
+	     -e '/^$$/ d' -e 's/$$/ :/' < $< >> $@
+	@rm -f $<
 
 # ADD_TARGET_RULE.* - Parameterized "functions" that adds a new target to the
 #   Makefile.  There should be one ADD_TARGET_RULE definition for each
@@ -166,26 +173,14 @@ endef
 
 # COMPILE_C_CMDS - Commands for compiling C source code.
 define COMPILE_C_CMDS
-	@mkdir -p $(dir $@)
-	$(strip ${CC} -o $@ -c -MD ${CFLAGS} ${SRC_CFLAGS} ${INCDIRS} \
+	$(strip ${CC} -o $@ -c ${MD_FLAGS} ${CFLAGS} ${SRC_CFLAGS} ${INCDIRS} \
 	    ${SRC_INCDIRS} ${SRC_DEFS} ${DEFS} $<)
-	@cp ${BUILD_DIR}/$*.d ${BUILD_DIR}/$*.P; \
-	 sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$$//' \
-	     -e '/^$$/ d' -e 's/$$/ :/' < ${BUILD_DIR}/$*.d \
-	     >> ${BUILD_DIR}/$*.P; \
-	 rm -f ${BUILD_DIR}/$*.d
 endef
 
 # COMPILE_CXX_CMDS - Commands for compiling C++ source code.
 define COMPILE_CXX_CMDS
-	@mkdir -p $(dir $@)
-	$(strip ${CXX} -o $@ -c -MD ${CXXFLAGS} ${SRC_CXXFLAGS} ${INCDIRS} \
+	$(strip ${CXX} -o $@ -c ${MD_FLAGS} ${CXXFLAGS} ${SRC_CXXFLAGS} ${INCDIRS} \
 	    ${SRC_INCDIRS} ${SRC_DEFS} ${DEFS} $<)
-	@cp ${BUILD_DIR}/$*.d ${BUILD_DIR}/$*.P; \
-	 sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$$//' \
-	     -e '/^$$/ d' -e 's/$$/ :/' < ${BUILD_DIR}/$*.d \
-	     >> ${BUILD_DIR}/$*.P; \
-	 rm -f ${BUILD_DIR}/$*.d
 endef
 
 # INCLUDE_SUBMAKEFILE - Parameterized "function" that includes a new
@@ -255,7 +250,9 @@ define INCLUDE_SUBMAKEFILE
         $${TGT}_LINKER := $${TGT_LINKER}
         $${TGT}_POSTCLEAN := $${TGT_POSTCLEAN}
         $${TGT}_POSTINSTALL := $${TGT_POSTINSTALL}
+
         $${TGT}_PREREQS := $$(addprefix $${TARGET_DIR},$${TGT_PREREQS})
+        $${TGT}_PRLIBS := $$(filter %.a %.so %.la,$${TGT_PREREQS})
         $${TGT}_DEPS :=
         $${TGT}_OBJS :=
         $${TGT}_SOURCES :=
@@ -430,8 +427,10 @@ ifeq "${RR}" "./"
   RR := 
 else
   RR := $(patsubst %//,%/,${RR})
-  LDFLAGS += -L${RR}
 endif
+
+# Look in the target directory for libraries
+LDFLAGS += -L${RR}${TARGET_DIR}
 
 root := $(patsubst ${CURDIR}/%,%,$(abspath $(dir $(lastword $(MAKEFILE_LIST)))))
 SUBDIR := $(subst ${root}/,,${PWD})

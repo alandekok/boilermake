@@ -1,7 +1,6 @@
 TARGET := talk
 
-TGT_LDFLAGS := -L.
-TGT_LDLIBS  := -lanimals -lplants
+# This automatically sets the correct linker flags to grab these files.
 TGT_PREREQS := libanimals.a libplants.a
 
 SOURCES := talk.cc
