@@ -61,9 +61,9 @@ endef
 define ADD_TARGET_RULE.exe
     ${1}: $${${1}_OBJS} $${${1}_PREREQS}
 	    @mkdir -p $$(dir $$@)
-	    $$(strip $${${1}_LINKER} -o ${1} $${LDFLAGS} $${TGT_LDFLAGS} \
-	        $${${1}_OBJS} $${LDLIBS} $${${1}_PRLIBS} $${TGT_LDLIBS})
-	    $${TGT_POSTMAKE}
+	    $$(strip $${${1}_LINKER} -o ${1} $${LDFLAGS} $${${1}_LDFLAGS} \
+	        $${${1}_OBJS} $${${1}_PRLIBS} $${LDLIBS} $${${1}_LDLIBS})
+	    $${${1}_POSTMAKE}
 endef
 
 # ADD_TARGET_RULE.a - Build a static library target.
@@ -74,7 +74,7 @@ define ADD_TARGET_RULE.a
     ${1}: $${${1}_OBJS} $${${1}_PREREQS}
 	    @mkdir -p $$(dir $$@)
 	    $$(strip $${AR} $${ARFLAGS} ${1} $${${1}_OBJS})
-	    $${TGT_POSTMAKE}
+	    $${${1}_POSTMAKE}
 endef
 
 # ADD_TARGET_RULE.so - Build a ".so" target.
@@ -108,9 +108,9 @@ endef
 define ADD_TARGET_RULE.la
     ${1}: $${${1}_OBJS} $${${1}_PREREQS}
 	    @mkdir -p $$(dir $$@)
-	    $$(strip $${${1}_LINKER} -o ${1} $${LDFLAGS} $${TGT_LDFLAGS} \
-	        $${${1}_OBJS} $${LDLIBS} $${TGT_LDLIBS})
-	    $${TGT_POSTMAKE}
+	    $$(strip $${${1}_LINKER} -o ${1} $${LDFLAGS} $${${1}_LDFLAGS} \
+	        $${${1}_OBJS} $${LDLIBS} $${${1}_LDLIBS})
+	    $${${1}_POSTMAKE}
 endef
 
 # ADD_INSTALL_RULE.* - Parameterized "functions" that adds a new
@@ -259,9 +259,9 @@ define INCLUDE_SUBMAKEFILE
         # makefile apply to this new target. Initialize the target's variables.
         TGT := $$(strip $${TARGET_DIR}$${TARGET})
         ALL_TGTS += $${TGT}
-        $${TGT}: TGT_LDFLAGS := $${TGT_LDFLAGS}
-        $${TGT}: TGT_LDLIBS := $${TGT_LDLIBS}
-        $${TGT}: TGT_POSTMAKE := $${TGT_POSTMAKE}
+        $${TGT}_LDFLAGS := $${TGT_LDFLAGS}
+        $${TGT}_LDLIBS := $${TGT_LDLIBS}
+        $${TGT}_POSTMAKE := $${TGT_POSTMAKE}
         $${TGT}_LINKER := $${TGT_LINKER}
         $${TGT}_POSTCLEAN := $${TGT_POSTCLEAN}
         $${TGT}_POSTINSTALL := $${TGT_POSTINSTALL}
