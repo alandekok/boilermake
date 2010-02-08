@@ -1,4 +1,4 @@
-# boilermake: A reusable, but flexible, boilerplate Makefile.
+# Boilermake: A reusable, but flexible, boilerplate Makefile.
 #
 # Author: Dan Moulding <dmoulding@gmail.com> (2008)
 
@@ -59,25 +59,9 @@ endef
 #   USE WITH EVAL
 #
 define ADD_TARGET_RULE.exe
-    # Add a target for linking an executable. First, attempt to select the
-    # appropriate front-end to use for linking. This might not choose the
-    # right one (e.g. if linking with a C++ static library, but all other
-    # sources are C sources), so the user makefile is allowed to specify a
-    # linker to be used for each target.
-    ifeq "$$(strip $${${1}_LINKER})" ""
-        # No linker was explicitly specified to be used for this target. If
-        # there are any C++ sources for this target, use the C++ compiler.
-        # For all other targets, default to using the C compiler.
-        ifneq "$$(strip $$(filter $${CXX_SRC_EXTS},$${${1}_SOURCES}))" ""
-            ${1}: TGT_LINKER = $${CXX}
-        else
-            ${1}: TGT_LINKER = $${CC}
-        endif
-    endif
-
     ${1}: $${${1}_OBJS} $${${1}_PREREQS}
 	    @mkdir -p $$(dir $$@)
-	    $$(strip $${TGT_LINKER} -o ${1} $${LDFLAGS} $${TGT_LDFLAGS} \
+	    $$(strip $${${1}_LINKER} -o ${1} $${LDFLAGS} $${TGT_LDFLAGS} \
 	        $${${1}_OBJS} $${LDLIBS} $${${1}_PRLIBS} $${TGT_LDLIBS})
 	    $${TGT_POSTMAKE}
 endef
@@ -122,7 +106,11 @@ endef
 #   USE WITH EVAL
 #
 define ADD_TARGET_RULE.la
-$(error Please define LIBTOOL and re-build)
+    ${1}: $${${1}_OBJS} $${${1}_PREREQS}
+	    @mkdir -p $$(dir $$@)
+	    $$(strip $${${1}_LINKER} -o ${1} $${LDFLAGS} $${TGT_LDFLAGS} \
+	        $${${1}_OBJS} $${LDLIBS} $${TGT_LDLIBS})
+	    $${TGT_POSTMAKE}
 endef
 
 # ADD_INSTALL_RULE.* - Parameterized "functions" that adds a new
@@ -143,7 +131,7 @@ define ADD_INSTALL_RULE.exe
 
     $${DESTDIR}/$${${1}_INSTALLDIR}/$(notdir ${1}): ${1}
 	@mkdir -p $${DESTDIR}/$${${1}_INSTALLDIR}
-	$$(strip $${INSTALL} -c -m 755 ${1} $${DESTDIR}/$${${1}_INSTALLDIR}/)
+	$$(strip $${PROGRAM_INSTALL} -c -m 755 ${1} $${DESTDIR}/$${${1}_INSTALLDIR}/)
 	$${${1}_POSTINSTALL}
 endef
 
@@ -157,73 +145,7 @@ define ADD_INSTALL_RULE.a
 
     $${DESTDIR}/$${${1}_INSTALLDIR}/$(notdir ${1}): ${1}
 	@mkdir -p $${DESTDIR}/$${${1}_INSTALLDIR}
-	$$(strip $${INSTALL} -c -m 755 ${1} $${DESTDIR}/$${${1}_INSTALLDIR}/)
-	$${${1}_POSTINSTALL}
-endef
-
-#  If we're using libtool, re-define the target and installation
-#  rules, as the linking rules are different.
-#
-ifneq "${LIBTOOL}" ""
-define ADD_TARGET_RULE.la
-    # Add a target for linking an executable. First, attempt to select the
-    # appropriate front-end to use for linking. This might not choose the
-    # right one (e.g. if linking with a C++ static library, but all other
-    # sources are C sources), so the user makefile is allowed to specify a
-    # linker to be used for each target.
-    ifeq "$$(strip $${${1}_LINKER})" ""
-        # No linker was explicitly specified to be used for this target. If
-        # there are any C++ sources for this target, use the C++ compiler.
-        # For all other targets, default to using the C compiler.
-        ifneq "$$(strip $$(filter $${CXX_SRC_EXTS},$${${1}_SOURCES}))" ""
-            ${1}: TGT_LINKER = $${LIBTOOL} --mode=link $${CXX} $${LIBTOOL_RPATH}
-        else
-            ${1}: TGT_LINKER = $${LIBTOOL} --mode=link $${CC} $${LIBTOOL_RPATH}
-        endif
-    endif
-
-    ${1}: $${${1}_OBJS} $${${1}_PREREQS}
-	    @mkdir -p $$(dir $$@)
-	    $$(strip $${TGT_LINKER} -o ${1} $${LDFLAGS} $${TGT_LDFLAGS} \
-	        $${${1}_OBJS} $${LDLIBS} $${TGT_LDLIBS})
-	    $${TGT_POSTMAKE}
-endef
-
-define ADD_TARGET_RULE.exe
-    # Add a target for linking an executable. First, attempt to select the
-    # appropriate front-end to use for linking. This might not choose the
-    # right one (e.g. if linking with a C++ static library, but all other
-    # sources are C sources), so the user makefile is allowed to specify a
-    # linker to be used for each target.
-    ifeq "$$(strip $${${1}_LINKER})" ""
-        # No linker was explicitly specified to be used for this target. If
-        # there are any C++ sources for this target, use the C++ compiler.
-        # For all other targets, default to using the C compiler.
-        ifneq "$$(strip $$(filter $${CXX_SRC_EXTS},$${${1}_SOURCES}))" ""
-            ${1}: TGT_LINKER = $${LIBTOOL} --mode=link $${CXX}
-        else
-            ${1}: TGT_LINKER = $${LIBTOOL} --mode=link $${CC}
-        endif
-    endif
-
-    ${1}: $${${1}_OBJS} $${${1}_PREREQS}
-	    @mkdir -p $$(dir $$@)
-	    $$(strip $${TGT_LINKER} -o ${1} $${LDFLAGS} $${TGT_LDFLAGS} \
-	        $${${1}_OBJS} $${LDLIBS} $${${1}_PRLIBS} $${TGT_LDLIBS})
-	    $${TGT_POSTMAKE}
-endef
-
-# ADD_INSTALL_RULE.exe - Parameterized "function" that adds a new rule
-#   and phony target for installing an executable.
-#
-#   USE WITH EVAL
-#
-define ADD_INSTALL_RULE.exe
-    install: $${DESTDIR}/$${${1}_INSTALLDIR}/$(notdir ${1})
-
-    $${DESTDIR}/$${${1}_INSTALLDIR}/$(notdir ${1}): ${1}
-	@mkdir -p $${DESTDIR}/$${${1}_INSTALLDIR}
-	$$(strip $(LIBTOOL) --mode=install $${INSTALL} -c -m 755 ${1} $${DESTDIR}/$${${1}_INSTALLDIR}/)
+	$$(strip $${PROGRAM_INSTALL} -c -m 755 ${1} $${DESTDIR}/$${${1}_INSTALLDIR}/)
 	$${${1}_POSTINSTALL}
 endef
 
@@ -237,12 +159,9 @@ define ADD_INSTALL_RULE.la
 
     $${DESTDIR}/$${${1}_INSTALLDIR}/$(notdir ${1}): ${1}
 	@mkdir -p $${DESTDIR}/$${${1}_INSTALLDIR}
-	$$(strip $(LIBTOOL) --mode=install $${INSTALL} -c -m 755 ${1} $${DESTDIR}/$${${1}_INSTALLDIR}/)
+	$$(strip $${PROGRAM_INSTALL} -c -m 755 ${1} $${DESTDIR}/$${${1}_INSTALLDIR}/)
 	$${${1}_POSTINSTALL}
 endef
-
-# end of libtool-specific target and install rules.
-endif
 
 
 # LIBTOOL_ENDINGS - Given a library ending in ".a" or ".so", replace that
@@ -264,13 +183,13 @@ endef
 
 # COMPILE_C_CMDS - Commands for compiling C source code.
 define COMPILE_C_CMDS
-	$(strip ${PROGRAM_CC} -o $@ -c ${MD_FLAGS} ${CFLAGS} ${SRC_CFLAGS} ${INCDIRS} \
+	$(strip ${COMPILE_CC} -o $@ -c ${MD_FLAGS} ${CFLAGS} ${SRC_CFLAGS} ${INCDIRS} \
 	    ${SRC_INCDIRS} ${SRC_DEFS} ${DEFS} $<)
 endef
 
 # COMPILE_CXX_CMDS - Commands for compiling C++ source code.
 define COMPILE_CXX_CMDS
-	$(strip ${PROGRAM_CXX} -o $@ -c ${MD_FLAGS} ${CXXFLAGS} ${SRC_CXXFLAGS} ${INCDIRS} \
+	$(strip ${COMPILE_CXX} -o $@ -c ${MD_FLAGS} ${CXXFLAGS} ${SRC_CXXFLAGS} ${INCDIRS} \
 	    ${SRC_INCDIRS} ${SRC_DEFS} ${DEFS} $<)
 endef
 
@@ -342,7 +261,6 @@ define INCLUDE_SUBMAKEFILE
         ALL_TGTS += $${TGT}
         $${TGT}: TGT_LDFLAGS := $${TGT_LDFLAGS}
         $${TGT}: TGT_LDLIBS := $${TGT_LDLIBS}
-        $${TGT}: TGT_LINKER := $${TGT_LINKER}
         $${TGT}: TGT_POSTMAKE := $${TGT_POSTMAKE}
         $${TGT}_LINKER := $${TGT_LINKER}
         $${TGT}_POSTCLEAN := $${TGT_POSTCLEAN}
@@ -448,6 +366,17 @@ define INCLUDE_SUBMAKEFILE
         # For dependency tracking to work, we still add all targets
         # to the build system.
 
+        # Choose the correct linker.
+	ifeq "$$(strip $$(filter $${CXX_SRC_EXTS},$${$${TGT}_SOURCES}))" ""
+            ifeq "$${$${TGT}_LINKER}" ""
+                $${TGT}_LINKER := $${LINKER_CC}
+            endif
+        else
+            ifeq "$${$${TGT}_LINKER}" ""
+                $${TGT}_LINKER := $${LINKER_CXX}
+            endif
+        endif
+
         # add rules to build the target
         $$(eval $$(call ADD_TARGET_RULE$${$${TGT}_SUFFIX},$${TGT}))
 
@@ -527,7 +456,11 @@ else
 endif
 
 # Look in the target directory for libraries
-LDFLAGS += -L${RR}${TARGET_DIR}
+ifneq "${RR}${TARGET_DIR}" ""
+    LDFLAGS += -L${RR}${TARGET_DIR}
+else
+    LDFLAGS += -L.
+endif
 
 root := $(patsubst ${CURDIR}/%,%,$(abspath $(dir $(lastword $(MAKEFILE_LIST)))))
 SUBDIR := $(subst ${root}/,,${PWD})
@@ -557,27 +490,24 @@ all clean install:
 #
 ifeq "${LIBTOOL}" ""
 OBJ_EXT := o
-PROGRAM_CC = ${CC}
-PROGRAM_CXX = ${CXX}
+COMPILE_CC = ${CC}
+COMPILE_CXX = ${CXX}
+LINKER_CC = ${CC}
+LINKER_CXX = ${CXX}
+PROGRAM_INSTALL := ${INSTALL}
 else
 OBJ_EXT := lo
-PROGRAM_CC = ${LIBTOOL} --mode=compile ${CC}
-PROGRAM_CXX = ${LIBTOOL} --mode=compile ${CXX}
-
+COMPILE_CC = ${LIBTOOL} --mode=compile ${CC}
+COMPILE_CXX = ${LIBTOOL} --mode=compile ${CXX}
+LINKER_CC = ${LIBTOOL} --mode=link ${CC}
+LINKER_CXX = ${LIBTOOL} --mode=link ${CXX}
+PROGRAM_INSTALL := ${LIBTOOL} --mode=install ${INSTALL}
 ifneq "${libdir}" ""
-    LIBTOOL_RPATH := -rpath ${libdir} -export-dynamic
+    LDFLAGS += -rpath ${libdir} -export-dynamic
 else
-    LIBTOOL_RPATH := -static
+    LDFLAGS += -static
 endif
 endif
-
-# Include the main user-supplied submakefile. This also recursively includes
-# all other user-supplied submakefiles.
-$(eval $(call INCLUDE_SUBMAKEFILE,${RR}main.mk))
-
-# Perform post-processing on global variables as needed.
-DEFS := $(addprefix -D,${DEFS})
-INCDIRS := $(addprefix -I,$(call CANONICAL_PATH,${RR}${INCDIRS}))
 
 # Give an error if we can't do "make install", rather than saying
 # "nothing to do".
@@ -589,6 +519,14 @@ install_ERROR:
 	@echo Please define INSTALL in order to enable the installation rules.
 	@exit 1
 endif
+
+# Include the main user-supplied submakefile. This also recursively includes
+# all other user-supplied submakefiles.
+$(eval $(call INCLUDE_SUBMAKEFILE,${RR}main.mk))
+
+# Perform post-processing on global variables as needed.
+DEFS := $(addprefix -D,${DEFS})
+INCDIRS := $(addprefix -I,$(call CANONICAL_PATH,${RR}${INCDIRS}))
 
 # Add pattern rule(s) for creating compiled object code from C source.
 $(foreach EXT,${C_SRC_EXTS},\
