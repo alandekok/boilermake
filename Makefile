@@ -127,11 +127,11 @@ endef
 #   USE WITH EVAL
 #
 define ADD_INSTALL_RULE.exe
-    install: $${DESTDIR}/$${${1}_INSTALLDIR}/$(notdir ${1})
+    install: $${${1}_INSTALLDIR}/$(notdir ${1})
 
-    $${DESTDIR}/$${${1}_INSTALLDIR}/$(notdir ${1}): ${1}
-	@mkdir -p $${DESTDIR}/$${${1}_INSTALLDIR}
-	$$(strip $${PROGRAM_INSTALL} -c -m 755 ${1} $${DESTDIR}/$${${1}_INSTALLDIR}/)
+    $${${1}_INSTALLDIR}/$(notdir ${1}): ${1}
+	@mkdir -p $${${1}_INSTALLDIR}
+	$$(strip $${PROGRAM_INSTALL} -c -m 755 ${1} $${${1}_INSTALLDIR}/)
 	$${${1}_POSTINSTALL}
 endef
 
@@ -141,11 +141,11 @@ endef
 #   USE WITH EVAL
 #
 define ADD_INSTALL_RULE.a
-    install: $${DESTDIR}/$${${1}_INSTALLDIR}/$(notdir ${1})
+    install: $${${1}_INSTALLDIR}/$(notdir ${1})
 
-    $${DESTDIR}/$${${1}_INSTALLDIR}/$(notdir ${1}): ${1}
-	@mkdir -p $${DESTDIR}/$${${1}_INSTALLDIR}
-	$$(strip $${PROGRAM_INSTALL} -c -m 755 ${1} $${DESTDIR}/$${${1}_INSTALLDIR}/)
+    $${${1}_INSTALLDIR}/$(notdir ${1}): ${1}
+	@mkdir -p $${${1}_INSTALLDIR}
+	$$(strip $${PROGRAM_INSTALL} -c -m 755 ${1} $${${1}_INSTALLDIR}/)
 	$${${1}_POSTINSTALL}
 endef
 
@@ -155,11 +155,11 @@ endef
 #   USE WITH EVAL
 #
 define ADD_INSTALL_RULE.la
-    install: $${DESTDIR}/$${${1}_INSTALLDIR}/$(notdir ${1})
+    install: $${${1}_INSTALLDIR}/$(notdir ${1})
 
-    $${DESTDIR}/$${${1}_INSTALLDIR}/$(notdir ${1}): ${1}
-	@mkdir -p $${DESTDIR}/$${${1}_INSTALLDIR}
-	$$(strip $${PROGRAM_INSTALL} -c -m 755 ${1} $${DESTDIR}/$${${1}_INSTALLDIR}/)
+    $${${1}_INSTALLDIR}/$(notdir ${1}): ${1}
+	@mkdir -p $${${1}_INSTALLDIR}
+	$$(strip $${PROGRAM_INSTALL} -c -m 755 ${1} $${${1}_INSTALLDIR}/)
 	$${${1}_POSTINSTALL}
 endef
 
@@ -285,7 +285,7 @@ define INCLUDE_SUBMAKEFILE
             endif
         endif
 
-        $${TGT}_INSTALLDIR := $${TGT_INSTALLDIR}
+        $${TGT}_INSTALLDIR := $${DESTDIR}$${TGT_INSTALLDIR}
     else
         # The values defined by this makefile apply to the the "current" target
         # as determined by which target is at the top of the stack.
@@ -466,6 +466,12 @@ root := $(patsubst ${CURDIR}/%,%,$(abspath $(dir $(lastword $(MAKEFILE_LIST)))))
 SUBDIR := $(subst ${root}/,,${PWD})
 ifeq "${root}" "${SUBDIR}"
     SUBDIR :=
+endif
+
+# Ensure DESTDIR has a trailing /.  We do this by adding a (possibly)
+# second one, and then replacing the doubled one with a single one.
+ifneq "${DESTDIR}" ""
+    DESTDIR := $(patsubst %//,%/,${DESTDIR}/)
 endif
 
 # Define the source file extensions that we know how to handle.
