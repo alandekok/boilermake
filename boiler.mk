@@ -163,6 +163,19 @@ define ADD_INSTALL_RULE.la
 	$${${1}_POSTINSTALL}
 endef
 
+# ADD_INSTALL_RULE.man - Parameterized "function" that adds a new rule
+#   and phony target for installing a "man" page.  It will take care of
+#   installing it into the correct subdirectory of "man".
+#
+#   USE WITH EVAL
+#
+define ADD_INSTALL_RULE.man
+    install: ${2}/$(notdir ${1})
+
+    ${2}/$(notdir ${1}): ${1}
+	@mkdir -p ${2}/
+	$$(strip $${PROGRAM_INSTALL} -c -m 644 ${1} ${2}/)
+endef
 
 # LIBTOOL_ENDINGS - Given a library ending in ".a" or ".so", replace that
 #   extension with ".la".
@@ -211,6 +224,8 @@ define INCLUDE_SUBMAKEFILE
     TGT_PREREQS :=
     TGT_POSTINSTALL :=
     TGT_INSTALLDIR := ..
+
+    MAN :=
 
     SOURCES :=
     SRC_CFLAGS :=
@@ -271,6 +286,7 @@ define INCLUDE_SUBMAKEFILE
         $${TGT}_DEPS :=
         $${TGT}_OBJS :=
         $${TGT}_SOURCES :=
+        $${TGT}_MAN := $${MAN}
 
         $${TGT}_SUFFIX := $$(if $$(suffix $${TGT}),$$(suffix $${TGT}),.exe)
 
@@ -357,6 +373,20 @@ define INCLUDE_SUBMAKEFILE
                 ifneq "$${$${TGT}_INSTALLDIR}" ""
                     $$(eval $$(call ADD_INSTALL_RULE$${$${TGT}_SUFFIX},$${TGT}))
                 endif
+            endif
+
+            # add rules to install the MAN pages.
+            ifeq "$${mandir}" ""
+                $$(error You must define 'mandir' in order to be able to install MAN pages.)
+            endif
+
+            ifneq "$$(strip $${MAN})" ""
+                MAN     := $$(call QUALIFY_PATH,$${DIR},$${MAN})
+                MAN     := $$(call CANONICAL_PATH,$${MAN})
+
+                $$(foreach PAGE,$${MAN},\
+                    $$(eval $$(call ADD_INSTALL_RULE.man,$${PAGE},\
+                      $${DESTDIR}$${mandir}/man$$(subst .,,$$(suffix $${PAGE})))))
             endif
 
             # add rules to clean the output files
