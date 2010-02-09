@@ -183,13 +183,13 @@ endef
 
 # COMPILE_C_CMDS - Commands for compiling C source code.
 define COMPILE_C_CMDS
-	$(strip ${COMPILE_CC} -o $@ -c ${MD_FLAGS} ${CFLAGS} ${SRC_CFLAGS} ${INCDIRS} \
+	$(strip ${COMPILE_CC} -o $@ -c ${CFLAGS} ${SRC_CFLAGS} ${INCDIRS} \
 	    ${SRC_INCDIRS} ${SRC_DEFS} ${DEFS} $<)
 endef
 
 # COMPILE_CXX_CMDS - Commands for compiling C++ source code.
 define COMPILE_CXX_CMDS
-	$(strip ${COMPILE_CXX} -o $@ -c ${MD_FLAGS} ${CXXFLAGS} ${SRC_CXXFLAGS} ${INCDIRS} \
+	$(strip ${COMPILE_CXX} -o $@ -c ${CXXFLAGS} ${SRC_CXXFLAGS} ${INCDIRS} \
 	    ${SRC_INCDIRS} ${SRC_DEFS} ${DEFS} $<)
 endef
 
@@ -514,6 +514,10 @@ else
     LDFLAGS += -static
 endif
 endif
+
+# FIXME: Check for GCC
+CFLAGS += -MD
+CXXFLAGS += -MD
 
 # Give an error if we can't do "make install", rather than saying
 # "nothing to do".
