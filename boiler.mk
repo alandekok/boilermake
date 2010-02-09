@@ -508,12 +508,38 @@ COMPILE_CXX = ${LIBTOOL} --mode=compile ${CXX}
 LINKER_CC = ${LIBTOOL} --mode=link ${CC}
 LINKER_CXX = ${LIBTOOL} --mode=link ${CXX}
 PROGRAM_INSTALL := ${LIBTOOL} --mode=install ${INSTALL}
+
+# Build jlibtool if it wasn't already built.
+ifeq "$(abspath ${LIBTOOL})" "$(abspath ${top_srcdir}/jlibtool)"
+
+# Note that we need to use a compilation rule that does NOT include
+# referencing ${LIBTOOL}, as we don't have a jlibtool binary!
+${top_srcdir}/jlibtool: ${top_srcdir}/jlibtool.c
+	${CC} $< -o $@
+
+# This rule means that jlibtool is build BEFORE any other targets,
+# which means that we can use it to build the later targets.
+all: ${top_srcdir}/jlibtool
+
+# do "clean" of jlibtool ONLY
+ifeq "${SUBDIR}" ""
+clean: jlibtool_clean
+
+.PHONY: jlibtool_clean
+jlibtool_clean:
+	rm -f ${top_srcdir}/jlibtool
+endif
+endif
+
+# If there is an installation directory, add dynamic library flags
+# to the build.
 ifneq "${libdir}" ""
     LDFLAGS += -rpath ${libdir} -export-dynamic
 else
     LDFLAGS += -static
 endif
-endif
+
+endif	# LIBTOOl was defined
 
 # FIXME: Check for GCC
 CFLAGS += -MD

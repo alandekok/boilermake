@@ -57,4 +57,4 @@ includedir	= ${prefix}/include
 # Include the boilermake file, which has all of the magic to set up
 # the rest of the rules.
 #
-include $(dir $(lastword $(MAKEFILE_LIST)))/boiler.mk
+include ${top_srcdir}/boiler.mk
