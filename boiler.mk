@@ -376,11 +376,11 @@ define INCLUDE_SUBMAKEFILE
             endif
 
             # add rules to install the MAN pages.
-            ifeq "$${mandir}" ""
-                $$(error You must define 'mandir' in order to be able to install MAN pages.)
-            endif
-
             ifneq "$$(strip $${MAN})" ""
+                ifeq "$${mandir}" ""
+                    $$(error You must define 'mandir' in order to be able to install MAN pages.)
+                endif
+
                 MAN     := $$(call QUALIFY_PATH,$${DIR},$${MAN})
                 MAN     := $$(call CANONICAL_PATH,$${MAN})
 
@@ -571,10 +571,6 @@ endif
 
 endif	# LIBTOOl was defined
 
-# FIXME: Check for GCC
-CFLAGS += -MD
-CXXFLAGS += -MD
-
 # Give an error if we can't do "make install", rather than saying
 # "nothing to do".
 ifeq "${INSTALL}" ""
@@ -589,6 +585,10 @@ endif
 # Include the main user-supplied submakefile. This also recursively includes
 # all other user-supplied submakefiles.
 $(eval $(call INCLUDE_SUBMAKEFILE,${RR}main.mk))
+
+# FIXME: Check for GCC
+CFLAGS += -MD
+CXXFLAGS += -MD
 
 # Perform post-processing on global variables as needed.
 DEFS := $(addprefix -D,${DEFS})
