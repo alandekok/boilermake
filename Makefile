@@ -376,11 +376,11 @@ define INCLUDE_SUBMAKEFILE
             endif
 
             # add rules to install the MAN pages.
-            ifeq "$${mandir}" ""
-                $$(error You must define 'mandir' in order to be able to install MAN pages.)
-            endif
-
             ifneq "$$(strip $${MAN})" ""
+                ifeq "$${mandir}" ""
+                    $$(error You must define 'mandir' in order to be able to install MAN pages.)
+                endif
+
                 MAN     := $$(call QUALIFY_PATH,$${DIR},$${MAN})
                 MAN     := $$(call CANONICAL_PATH,$${MAN})
 
