@@ -545,10 +545,6 @@ else
 endif
 endif
 
-# FIXME: Check for GCC
-CFLAGS += -MD
-CXXFLAGS += -MD
-
 # Give an error if we can't do "make install", rather than saying
 # "nothing to do".
 ifeq "${INSTALL}" ""
@@ -563,6 +559,10 @@ endif
 # Include the main user-supplied submakefile. This also recursively includes
 # all other user-supplied submakefiles.
 $(eval $(call INCLUDE_SUBMAKEFILE,${RR}main.mk))
+
+# FIXME: Check for GCC
+CFLAGS += -MD
+CXXFLAGS += -MD
 
 # Perform post-processing on global variables as needed.
 DEFS := $(addprefix -D,${DEFS})
