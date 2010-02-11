@@ -542,14 +542,14 @@ PROGRAM_INSTALL := ${LIBTOOL} --mode=install ${INSTALL}
 # Build jlibtool if it wasn't already built.
 ifeq "$(abspath ${LIBTOOL})" "$(abspath ${top_srcdir}/jlibtool)"
 
-# Note that we need to use a compilation rule that does NOT include
-# referencing ${LIBTOOL}, as we don't have a jlibtool binary!
-${top_srcdir}/jlibtool: ${top_srcdir}/jlibtool.c
-	${CC} $< -o $@
-
 # This rule means that jlibtool is build BEFORE any other targets,
 # which means that we can use it to build the later targets.
 all: ${top_srcdir}/jlibtool
+
+# Note that we need to use a compilation rule that does NOT include
+# referencing ${LIBTOOL}, as we don't have a jlibtool binary!
+jlibtool ${top_srcdir}/jlibtool: ${top_srcdir}/jlibtool.c
+	${CC} $< -o $@
 
 # do "clean" of jlibtool ONLY
 ifeq "${SUBDIR}" ""
