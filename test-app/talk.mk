@@ -5,7 +5,7 @@ TGT_PREREQS := libanimals.a libplants.a
 
 SOURCES := talk.cc
 
-MAN := talk.1
+#MAN := talk.1
 
 SRC_INCDIRS := \
     animals \
