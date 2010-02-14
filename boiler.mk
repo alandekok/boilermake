@@ -496,6 +496,8 @@ endif
 RR := $(dir $(lastword $(MAKEFILE_LIST)))
 ifeq "${RR}" "./"
   RR := 
+else ifeq "${RR}" "$(call CANONICAL_PATH,${RR})/"
+  RR := 
 else
   RR := $(patsubst %//,%/,${RR})
 endif
