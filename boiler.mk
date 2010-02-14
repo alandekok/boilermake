@@ -22,10 +22,12 @@
 #
 define ADD_CLEAN_RULE
     clean: clean_${1}
+
     .PHONY: clean_${1}
     clean_${1}:
 	$$(strip rm -f ${1} ${${1}_OBJS} $${${1}_OBJS:%.${OBJ_EXT}=%.[doP]})
 	$${${1}_POSTCLEAN}
+
 endef
 
 # ADD_OBJECT_RULE - Parameterized "function" that adds a pattern rule, using
@@ -55,7 +57,7 @@ endef
 ifeq "${CC_MD}" "yes"
 # ADD_DEPEND_RULE.c - Parameterized "function" that adds a new rule which
 #   says that the .d file is generated automatically when the .o file is
-#   created.
+#   created.<
 #
 #   USE WITH EVAL
 #
@@ -75,9 +77,9 @@ else				# CC_MD
 define ADD_DEPEND_RULE.c
     $${BUILD_DIR}/$(basename ${1}).d: ${1}
 	$${CPP} $${CPPFLAGS} $${INCDIRS} $$< \
-                 | sed -n 's/^\# *[0-9][0-9]* *"\([^"]*\)".*/$(basename ${1}).${OBJ_EXT}: \1/p' \
+                 | sed -n 's,^\# *[0-9][0-9]* *"\([^"]*\)".*,$(basename ${1}).${OBJ_EXT}: \1,p' \
                  | sed -e 's,: /usr\(.*\)$$$$,: ,' -e 's,: <\(.*\)$$$$,: ,' -e 's,^.*: $$$$,,' | sort | uniq > $$@
-endef
+endef				# ADD_DEPEND_RULE
 
 endif				# CC_MD
 
@@ -134,6 +136,7 @@ define ADD_TARGET_RULE.exe
 	    $$(strip $${${1}_LINKER} -o ${1} $${LDFLAGS} $${${1}_LDFLAGS} \
 	        $${${1}_OBJS} $${${1}_PRLIBS} $${LDLIBS} $${${1}_LDLIBS})
 	    $${${1}_POSTMAKE}
+
 endef
 
 # ADD_TARGET_RULE.a - Build a static library target.
@@ -145,6 +148,7 @@ define ADD_TARGET_RULE.a
 	    @mkdir -p $$(dir $$@)
 	    $$(strip $${AR} $${ARFLAGS} ${1} $${${1}_OBJS})
 	    $${${1}_POSTMAKE}
+
 endef
 
 # ADD_TARGET_RULE.so - Build a ".so" target.
@@ -181,6 +185,7 @@ define ADD_TARGET_RULE.la
 	    $$(strip $${${1}_LINKER} -o ${1} $${LDFLAGS} $${${1}_LDFLAGS} \
 	        $${${1}_OBJS} $${LDLIBS} $${${1}_LDLIBS})
 	    $${${1}_POSTMAKE}
+
 endef
 
 # ADD_INSTALL_RULE.* - Parameterized "functions" that adds a new
@@ -203,6 +208,7 @@ define ADD_INSTALL_RULE.exe
 	@mkdir -p $${${1}_INSTALLDIR}
 	$$(strip $${PROGRAM_INSTALL} -c -m 755 ${1} $${${1}_INSTALLDIR}/)
 	$${${1}_POSTINSTALL}
+
 endef
 
 # ADD_INSTALL_RULE.a - Parameterized "function" that adds a new rule
@@ -217,6 +223,7 @@ define ADD_INSTALL_RULE.a
 	@mkdir -p $${${1}_INSTALLDIR}
 	$$(strip $${PROGRAM_INSTALL} -c -m 755 ${1} $${${1}_INSTALLDIR}/)
 	$${${1}_POSTINSTALL}
+
 endef
 
 # ADD_INSTALL_RULE.la - Parameterized "function" that adds a new rule
@@ -231,6 +238,7 @@ define ADD_INSTALL_RULE.la
 	@mkdir -p $${${1}_INSTALLDIR}
 	$$(strip $${PROGRAM_INSTALL} -c -m 755 ${1} $${${1}_INSTALLDIR}/)
 	$${${1}_POSTINSTALL}
+
 endef
 
 # ADD_INSTALL_RULE.man - Parameterized "function" that adds a new rule
@@ -245,6 +253,7 @@ define ADD_INSTALL_RULE.man
     ${2}/$(notdir ${1}): ${1}
 	@mkdir -p ${2}/
 	$$(strip $${PROGRAM_INSTALL} -c -m 644 ${1} ${2}/)
+
 endef
 
 # LIBTOOL_ENDINGS - Given a library ending in ".a" or ".so", replace that
@@ -355,10 +364,10 @@ define INCLUDE_SUBMAKEFILE
         # target, so that build systems using boilermake can use
         # "make libfoo.a", even when libtool is defined.
         ifneq "$${TARGET}" "$${TGT}"
-            $$(eval $${TARGET}:$${TGT})
+            $$(${eval} $${TARGET}:$${TGT})
         endif
         ifneq "$${TARGET_NOLIBTOOL}" ""
-            $$(eval $${TARGET_NOLIBTOOL}:$${TGT})
+            $$(${eval} $${TARGET_NOLIBTOOL}:$${TGT})
         endif
 
         $${TGT}_LDFLAGS := $${TGT_LDFLAGS}
@@ -380,15 +389,15 @@ define INCLUDE_SUBMAKEFILE
         # Figure out which target rule to use for installation.
         ifeq "$${$${TGT}_SUFFIX}" ".exe"
             ifeq "$${TGT_INSTALLDIR}" ".."
-                TGT_INSTALLDIR := $${bindir}
+                TGT_INSTALLDIR := ${LL}$${bindir}
             endif
         else 
             ifeq "$${TGT_INSTALLDIR}" ".."
-                TGT_INSTALLDIR := $${libdir}
+                TGT_INSTALLDIR := ${LL}$${libdir}
             endif
         endif
 
-        $${TGT}_INSTALLDIR := $${DESTDIR}$${TGT_INSTALLDIR}
+        $${TGT}_INSTALLDIR := ${LL}$${DESTDIR}$${TGT_INSTALLDIR}
     else
         # The values defined by this makefile apply to the the "current" target
         # as determined by which target is at the top of the stack.
@@ -414,17 +423,6 @@ define INCLUDE_SUBMAKEFILE
 
         # Save the list of source files for this target.
         $${TGT}_SOURCES += $${SOURCES}
-
-        # If the C compiler generates dependencies, print rules saying
-        # that the .d file depends on the .o file.
-        $$(foreach C,$${SOURCES},\
-            $$(eval $$(call ADD_DEPEND_RULE.c,$${C})))
-
-        $$(foreach C,$$(filter $${CXX_SRC_EXTS},$${SOURCES}),\
-            $$(eval $$(call ADD_COMPILE_RULE.cc,$${C})))
-
-        $$(foreach C,$$(filter $${C_SRC_EXTS},$${SOURCES}),\
-            $$(eval $$(call ADD_COMPILE_RULE.c,$${C})))
 
         # Convert the source file names to their corresponding object file
         # names.
@@ -461,13 +459,35 @@ define INCLUDE_SUBMAKEFILE
         # with ROOT.  If the result is DIR, then we're in a subdir.
         ifeq "$$(abspath $${DIR})" "$$(abspath ${root}/$${SUBDIR})$$(subst _xyz$$(abspath ${root}/$${SUBDIR}),,_xyz$$(abspath $${DIR}))"
             # Add the target to the default list of targets to be made
-            all: $${TGT}
+
+            ifeq "${eval}" "eval"
+                all: $${TGT}
+            else
+                $$(info #)
+                $$(info # Rules for $${TGT})
+                $$(info all: $${TGT})
+                $$(info )
+
+                $$(foreach x, LDFLAGS LDLIBS POSTMAKE LINKER POSTCLEAN INSTALLDIR POSTINSTALL PREREQS PRLIBS DEPS OBJS SOURCES MAN,$$(info $${TGT}_$${x} := $${$${TGT}_$${x}}))
+                $$(info )
+            endif
+
+        # If the C compiler generates dependencies, print rules saying
+        # that the .d file depends on the .o file.
+        $$(foreach C,$${$${TGT}_SOURCES},\
+            $$(${eval} $$(call ADD_DEPEND_RULE.c,$${C})))
+
+        $$(foreach C,$$(filter $${CXX_SRC_EXTS},$${$${TGT}_SOURCES}),\
+            $$(${eval} $$(call ADD_COMPILE_RULE.cc,$${C})))
+
+        $$(foreach C,$$(filter $${C_SRC_EXTS},$${$${TGT}_SOURCES}),\
+            $$(${eval} $$(call ADD_COMPILE_RULE.c,$${C})))
 
             # do installs only if we have an installation program.
             ifneq "${INSTALL}" ""
                 # add rules to install the target
                 ifneq "$${$${TGT}_INSTALLDIR}" ""
-                    $$(eval $$(call ADD_INSTALL_RULE$${$${TGT}_SUFFIX},$${TGT}))
+                    $$(${eval} $$(call ADD_INSTALL_RULE$${$${TGT}_SUFFIX},$${TGT}))
                 endif
             endif
 
@@ -481,12 +501,12 @@ define INCLUDE_SUBMAKEFILE
                 MAN     := $$(call CANONICAL_PATH,$${MAN})
 
                 $$(foreach PAGE,$${MAN},\
-                    $$(eval $$(call ADD_INSTALL_RULE.man,$${PAGE},\
-                      $${DESTDIR}$${mandir}/man$$(subst .,,$$(suffix $${PAGE})))))
+                    $$(${eval} $$(call ADD_INSTALL_RULE.man,$${PAGE},\
+                      ${LL}$${DESTDIR}${LL}$${mandir}/man$$(subst .,,$$(suffix $${PAGE})))))
             endif
 
             # add rules to clean the output files
-            $$(eval $$(call ADD_CLEAN_RULE,$${TGT}))
+            $$(${eval} $$(call ADD_CLEAN_RULE,$${TGT}))
         endif
 
         # For dependency tracking to work, we still add all targets
@@ -504,10 +524,12 @@ define INCLUDE_SUBMAKEFILE
         endif
 
         # add rules to build the target
-        $$(eval $$(call ADD_TARGET_RULE$${$${TGT}_SUFFIX},$${TGT}))
+        $$(${eval} $$(call ADD_TARGET_RULE$${$${TGT}_SUFFIX},$${TGT}))
 
         # include the dependency files of the target
-        $$(eval -include $${$${TGT}_DEPS})
+        ifneq ($(MAKECMDGOALS),clean)
+            $$(eval -include $${$${TGT}_DEPS})
+        endif
     endif
 
     TGT := $$(call PEEK,$${TGT_STACK})
@@ -684,6 +706,19 @@ endif
 ifeq "${CC_MD}" "yes"
 CFLAGS += -MD
 CXXFLAGS += -MD
+endif
+
+# Set to "info" for legacy makefile goodness!
+# Special macro to enable creating legacy Makefiles.  We *could* simply
+# output the full pathnames for every single rule.  However, that would
+# make it difficult to edit the resulting Makefile.  Instead, we define
+# a special variable which makes the EVAL rules above print out references
+# to the variable.  The other rules also print out "variable := value".
+#
+ifeq "${eval}" "info"
+    LL := $$
+else
+    eval=eval
 endif
 
 # Include the main user-supplied submakefile. This also recursively includes
