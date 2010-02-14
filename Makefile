@@ -426,7 +426,9 @@ define INCLUDE_SUBMAKEFILE
         $$(eval $$(call ADD_TARGET_RULE$${$${TGT}_SUFFIX},$${TGT}))
 
         # include the dependency files of the target
-        $$(eval -include $${$${TGT}_DEPS})
+        ifneq ($(MAKECMDGOALS),clean)
+            $$(eval -include $${$${TGT}_DEPS})
+        endif
     endif
 
     TGT := $$(call PEEK,$${TGT_STACK})
