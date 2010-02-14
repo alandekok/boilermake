@@ -266,7 +266,11 @@ define INCLUDE_SUBMAKEFILE
     ifneq "$$(strip $${TARGET})" ""
 
         ifneq "${LIBTOOL}" ""
+            TARGET_NOLIBTOOL := $${TARGET}
             TARGET := $$(call LIBTOOL_ENDINGS,$${TARGET})
+            ifeq "$${TARGET_NO_LIBTOOL}" "$${TARGET}"
+                TARGET_NO_LIBTOOL := 
+            endif
             TGT_PREREQS := $$(call LIBTOOL_ENDINGS,$${TGT_PREREQS})
         endif
 
@@ -274,6 +278,17 @@ define INCLUDE_SUBMAKEFILE
         # makefile apply to this new target. Initialize the target's variables.
         TGT := $$(strip $${TARGET_DIR}$${TARGET})
         ALL_TGTS += $${TGT}
+
+        # Add top-level target pointing to the full path of the
+        # target.  This lets us make a target from any subdirectory
+        # by simply doing "make target".  We also add a NON-libtool
+        # target, so that build systems using boilermake can use
+        # "make libfoo.a", even when libtool is defined.
+        $$(eval $${TARGET}:$${TGT})
+        ifneq "$${TARGET_NOLIBTOOL}" ""
+            $$(eval $${TARGET_NOLIBTOOL}:$${TGT})
+        endif
+
         $${TGT}_LDFLAGS := $${TGT_LDFLAGS}
         $${TGT}_LDLIBS := $${TGT_LDLIBS}
         $${TGT}_POSTMAKE := $${TGT_POSTMAKE}
