@@ -284,7 +284,9 @@ define INCLUDE_SUBMAKEFILE
         # by simply doing "make target".  We also add a NON-libtool
         # target, so that build systems using boilermake can use
         # "make libfoo.a", even when libtool is defined.
-        $$(eval $${TARGET}:$${TGT})
+        ifneq "$${TARGET}" "$${TGT}"
+            $$(eval $${TARGET}:$${TGT})
+        endif
         ifneq "$${TARGET_NOLIBTOOL}" ""
             $$(eval $${TARGET_NOLIBTOOL}:$${TGT})
         endif
