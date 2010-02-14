@@ -40,13 +40,83 @@ $${BUILD_DIR}/%.${OBJ_EXT}: ${1}
 	${2}
 endef
 
+# The dependency generator marks the object as depending on all of the
+# header files.  However, if the user *deletes* a header file, Make will
+# complain that there is no rule to build it.  To fix that issue, we
+# parse the .d file to create rules which say "header depends on nothing".
+# This causes Make to be happy, until such time as the .d file is re-created,
+# to not include the deleted header.
+#
 %.P: %.d
 	@cp $< $@
 	@sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$$//' \
 	     -e '/^$$/ d' -e 's/$$/ :/' < $< >> $@
-	@rm -f $<
 
-# ADD_TARGET_RULE.* - Parameterized "functions" that adds a new target to the
+ifeq "${CC_MD}" "yes"
+# ADD_DEPEND_RULE.c - Parameterized "function" that adds a new rule which
+#   says that the .d file is generated automatically when the .o file is
+#   created.
+#
+#   USE WITH EVAL
+#
+define ADD_DEPEND_RULE.c
+    $${BUILD_DIR}/$(basename ${1}).d: $${BUILD_DIR}/$(basename ${1}).${OBJ_EXT}
+
+endef
+else				# CC_MD
+
+# ADD_DEPEND_RULE.cc - Parameterized "function" that adds a new rule
+#   which says how to create the .d file from the .cc file.  This rule
+#   is used when the C compiler can't produce .d files during the
+#   compilation process.
+#
+#   USE WITH EVAL
+#
+define ADD_DEPEND_RULE.c
+    $${BUILD_DIR}/$(basename ${1}).d: ${1}
+	$${CPP} $${CPPFLAGS} $${INCDIRS} $$< \
+                 | sed -n 's/^\# *[0-9][0-9]* *"\([^"]*\)".*/$(basename ${1}).${OBJ_EXT}: \1/p' \
+                 | sed -e 's,: /usr\(.*\)$$$$,: ,' -e 's,: <\(.*\)$$$$,: ,' -e 's,^.*: $$$$,,' | sort | uniq > $$@
+endef
+
+endif				# CC_MD
+
+# ADD_COMPILE_RULE.c - Parameterized "function" that adds a new rule
+#   which says how to compile a .c file into a .o file.
+#
+#   There is normally no need for object-specific rules, as a generic
+#   rule could achieve the same result.  Instead, this rule is used as
+#   a template to create legacy Makefiles.
+#
+#   USE WITH EVAL
+#
+define ADD_COMPILE_RULE.c
+    $${BUILD_DIR}/$(basename ${1}).${OBJ_EXT}: ${1}
+	@mkdir -p ${BUILD_DIR}/$(dir ${1})
+	$$(strip $${COMPILE_CC} -o $$@ -c $${CFLAGS} $${SRC_CFLAGS} \
+            $${INCDIRS} $${SRC_INCDIRS} $${SRC_DEFS} $${DEFS} $$<)
+
+endef
+
+
+# ADD_COMPILE_RULE.cc - Parameterized "function" that adds a new rule
+#   which says how to compile a .cc file into a .o file.
+#
+#   There is normally no need for object-specific rules, as a generic
+#   rule could achieve the same result.  Instead, this rule is used as
+#   a template to create legacy Makefiles.
+#
+#   USE WITH EVAL
+#
+define ADD_COMPILE_RULE.cc
+    $${BUILD_DIR}/$(basename ${1}).${OBJ_EXT}: ${1}
+	@mkdir -p ${BUILD_DIR}/$(dir ${1})
+	$$(strip $${COMPILE_CXX} -o $$@ -c $${CXXFLAGS} $${SRC_CXXFLAGS} \
+            $${INCDIRS} $${SRC_INCDIRS} $${SRC_DEFS} $${DEFS} $$<)
+
+endef
+
+# ADD_TARGT_RULE.* - Parameterized "functions" that adds a new target to the
 #   Makefile.  There should be one ADD_TARGET_RULE definition for each
 #   type of target that is used in the build.  
 #
@@ -345,6 +415,17 @@ define INCLUDE_SUBMAKEFILE
         # Save the list of source files for this target.
         $${TGT}_SOURCES += $${SOURCES}
 
+        # If the C compiler generates dependencies, print rules saying
+        # that the .d file depends on the .o file.
+        $$(foreach C,$${SOURCES},\
+            $$(eval $$(call ADD_DEPEND_RULE.c,$${C})))
+
+        $$(foreach C,$$(filter $${CXX_SRC_EXTS},$${SOURCES}),\
+            $$(eval $$(call ADD_COMPILE_RULE.cc,$${C})))
+
+        $$(foreach C,$$(filter $${C_SRC_EXTS},$${SOURCES}),\
+            $$(eval $$(call ADD_COMPILE_RULE.c,$${C})))
+
         # Convert the source file names to their corresponding object file
         # names.
         OBJS := $$(addprefix $${BUILD_DIR}/,\
@@ -599,22 +680,12 @@ install_ERROR:
 	@exit 1
 endif
 
+# FIXME: Check for GCC
+ifeq "${CC_MD}" "yes"
+CFLAGS += -MD
+CXXFLAGS += -MD
+endif
+
 # Include the main user-supplied submakefile. This also recursively includes
 # all other user-supplied submakefiles.
 $(eval $(call INCLUDE_SUBMAKEFILE,${RR}main.mk))
-
-# FIXME: Check for GCC
-CFLAGS += -MD
-CXXFLAGS += -MD
-
-# Perform post-processing on global variables as needed.
-DEFS := $(addprefix -D,${DEFS})
-INCDIRS := $(addprefix -I,$(call CANONICAL_PATH,${RR}${INCDIRS}))
-
-# Add pattern rule(s) for creating compiled object code from C source.
-$(foreach EXT,${C_SRC_EXTS},\
-  $(eval $(call ADD_OBJECT_RULE,${EXT},$${COMPILE_C_CMDS})))
-
-# Add pattern rule(s) for creating compiled object code from C++ source.
-$(foreach EXT,${CXX_SRC_EXTS},\
-  $(eval $(call ADD_OBJECT_RULE,${EXT},$${COMPILE_CXX_CMDS})))
