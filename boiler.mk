@@ -362,8 +362,6 @@ define INCLUDE_SUBMAKEFILE
         # adding "_xyz" to the directory, and then substituting "_xyxROOT"
         # with ROOT.  If the result is DIR, then we're in a subdir.
         ifeq "$$(abspath $${DIR})" "$$(abspath ${root}/$${SUBDIR})$$(subst _xyz$$(abspath ${root}/$${SUBDIR}),,_xyz$$(abspath $${DIR}))"
-            ALL_TGTS += $${TGT}
-
             # Add the target to the default list of targets to be made
             all: $${TGT}
 
