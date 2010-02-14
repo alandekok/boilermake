@@ -282,7 +282,7 @@ define INCLUDE_SUBMAKEFILE
         $${TGT}_POSTINSTALL := $${TGT_POSTINSTALL}
 
         $${TGT}_PREREQS := $$(addprefix $${TARGET_DIR},$${TGT_PREREQS})
-        $${TGT}_PRLIBS := $$(filter %.a %.so %.la,$${TGT_PREREQS})
+        $${TGT}_PRLIBS := $$(filter %.a %.so %.la,$${$${TGT}_PREREQS})
         $${TGT}_DEPS :=
         $${TGT}_OBJS :=
         $${TGT}_SOURCES :=
