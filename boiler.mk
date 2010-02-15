@@ -30,18 +30,6 @@ define ADD_CLEAN_RULE
 
 endef
 
-# ADD_OBJECT_RULE - Parameterized "function" that adds a pattern rule, using
-#   the commands from the second argument, for building object files from
-#   source files with the filename extension specified in the first argument.
-#
-#   USE WITH EVAL
-#
-define ADD_OBJECT_RULE
-$${BUILD_DIR}/%.${OBJ_EXT}: ${1}
-	@mkdir -p $$(dir $$@)
-	${2}
-endef
-
 # The dependency generator marks the object as depending on all of the
 # header files.  However, if the user *deletes* a header file, Make will
 # complain that there is no rule to build it.  To fix that issue, we
@@ -76,9 +64,11 @@ else				# CC_MD
 #
 define ADD_DEPEND_RULE.c
     $${BUILD_DIR}/$(basename ${1}).d: ${1}
-	$${CPP} $${CPPFLAGS} $${INCDIRS} $$< \
+	@mkdir -p $$(dir $$@)
+	$${CPP} $${CPPFLAGS} $${${2}_INCDIRS} $${${2}_DEFS} $$< \
                  | sed -n 's,^\# *[0-9][0-9]* *"\([^"]*\)".*,$(basename ${1}).${OBJ_EXT}: \1,p' \
                  | sed -e 's,: /usr\(.*\)$$$$,: ,' -e 's,: <\(.*\)$$$$,: ,' -e 's,^.*: $$$$,,' | sort | uniq > $$@
+
 endef				# ADD_DEPEND_RULE
 
 endif				# CC_MD
@@ -95,8 +85,8 @@ endif				# CC_MD
 define ADD_COMPILE_RULE.c
     $${BUILD_DIR}/$(basename ${1}).${OBJ_EXT}: ${1}
 	@mkdir -p ${BUILD_DIR}/$(dir ${1})
-	$$(strip $${COMPILE_CC} -o $$@ -c $${CFLAGS} $${SRC_CFLAGS} \
-            $${INCDIRS} $${SRC_INCDIRS} $${SRC_DEFS} $${DEFS} $$<)
+	$$(strip $${COMPILE_CC} -o $$@ -c $${CFLAGS} $${${2}_CFLAGS} \
+            $${${2}_INCDIRS} $${${2}_DEFS} $$<)
 
 endef
 
@@ -113,8 +103,8 @@ endef
 define ADD_COMPILE_RULE.cc
     $${BUILD_DIR}/$(basename ${1}).${OBJ_EXT}: ${1}
 	@mkdir -p ${BUILD_DIR}/$(dir ${1})
-	$$(strip $${COMPILE_CXX} -o $$@ -c $${CXXFLAGS} $${SRC_CXXFLAGS} \
-            $${INCDIRS} $${SRC_INCDIRS} $${SRC_DEFS} $${DEFS} $$<)
+	$$(strip $${COMPILE_CXX} -o $$@ -c $${CXXFLAGS} $${${2}_CXXFLAGS} \
+            $${${2}_INCDIRS} $${${2}_DEFS} $$<)
 
 endef
 
@@ -273,18 +263,6 @@ define CANONICAL_PATH
 $(patsubst ${CURDIR}/%,%,$(abspath ${1}))
 endef
 
-# COMPILE_C_CMDS - Commands for compiling C source code.
-define COMPILE_C_CMDS
-	$(strip ${COMPILE_CC} -o $@ -c ${CFLAGS} ${SRC_CFLAGS} ${INCDIRS} \
-	    ${SRC_INCDIRS} ${SRC_DEFS} ${DEFS} $<)
-endef
-
-# COMPILE_CXX_CMDS - Commands for compiling C++ source code.
-define COMPILE_CXX_CMDS
-	$(strip ${COMPILE_CXX} -o $@ -c ${CXXFLAGS} ${SRC_CXXFLAGS} ${INCDIRS} \
-	    ${SRC_INCDIRS} ${SRC_DEFS} ${DEFS} $<)
-endef
-
 # INCLUDE_SUBMAKEFILE - Parameterized "function" that includes a new
 #   "submakefile" fragment into the overall Makefile. It also recursively
 #   includes all submakefiles of the specified submakefile fragment.
@@ -432,12 +410,12 @@ define INCLUDE_SUBMAKEFILE
         # Add the objects to the current target's list of objects, and create
         # target-specific variables for the objects based on any source
         # variables that were defined.
-        $${TGT}_OBJS += $${OBJS}
-        $${TGT}_DEPS += $${OBJS:%.${OBJ_EXT}=%.P}
-        $${OBJS}: SRC_CFLAGS := $${SRC_CFLAGS}
-        $${OBJS}: SRC_CXXFLAGS := $${SRC_CXXFLAGS}
-        $${OBJS}: SRC_DEFS := $$(addprefix -D,$${SRC_DEFS})
-        $${OBJS}: SRC_INCDIRS := $$(addprefix -I,$${SRC_INCDIRS})
+        $${TGT}_OBJS     += $${OBJS}
+        $${TGT}_DEPS     += $${OBJS:%.${OBJ_EXT}=%.P}
+        $${TGT}_CFLAGS   := $${SRC_CFLAGS}
+        $${TGT}_CXXFLAGS := $${SRC_CXXFLAGS}
+        $${TGT}_DEFS     := $$(addprefix -D,$${SRC_DEFS})
+        $${TGT}_INCDIRS  := $$(addprefix -I,$${SRC_INCDIRS})
     endif
 
     ifneq "$$(strip $${SUBMAKEFILES})" ""
@@ -468,20 +446,20 @@ define INCLUDE_SUBMAKEFILE
                 $$(info all: $${TGT})
                 $$(info )
 
-                $$(foreach x, LDFLAGS LDLIBS POSTMAKE LINKER POSTCLEAN INSTALLDIR POSTINSTALL PREREQS PRLIBS DEPS OBJS SOURCES MAN,$$(info $${TGT}_$${x} := $${$${TGT}_$${x}}))
+                $$(foreach x, CFLAGS CXXFLAGS DEFS INCDIRS DEPS OBJS LDFLAGS LDLIBS POSTMAKE LINKER POSTCLEAN INSTALLDIR POSTINSTALL PREREQS PRLIBS DEPS OBJS SOURCES MAN,$$(info $${TGT}_$${x} := $${$${TGT}_$${x}}))
                 $$(info )
             endif
 
         # If the C compiler generates dependencies, print rules saying
         # that the .d file depends on the .o file.
         $$(foreach C,$${$${TGT}_SOURCES},\
-            $$(${eval} $$(call ADD_DEPEND_RULE.c,$${C})))
+            $$(${eval} $$(call ADD_DEPEND_RULE.c,$${C},$${TGT})))
 
         $$(foreach C,$$(filter $${CXX_SRC_EXTS},$${$${TGT}_SOURCES}),\
-            $$(${eval} $$(call ADD_COMPILE_RULE.cc,$${C})))
+            $$(${eval} $$(call ADD_COMPILE_RULE.cc,$${C},$${TGT})))
 
         $$(foreach C,$$(filter $${C_SRC_EXTS},$${$${TGT}_SOURCES}),\
-            $$(${eval} $$(call ADD_COMPILE_RULE.c,$${C})))
+            $$(${eval} $$(call ADD_COMPILE_RULE.c,$${C},$${TGT})))
 
             # do installs only if we have an installation program.
             ifneq "${INSTALL}" ""
