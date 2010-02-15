@@ -712,6 +712,14 @@ ifeq "${eval}" "info"
                 datarootdir docdir mandir datadir logdir includedir,\
         $(info ${x} = $(value ${x})))
     $(info )
+    $(shell touch .foo)
+
+# The next few hacks are here to prevent make from printing
+# "Nothing to be done".  It's ugly, but more portable than "egrep -v"
+all: .bar
+
+.bar: .foo
+	@touch $@
 
 else
     eval=eval
@@ -723,8 +731,10 @@ $(eval $(call INCLUDE_SUBMAKEFILE,${RR}main.mk))
 
 # This depends on all of the generated ".P" files, which in turn create
 # dependencies on all of the headers && source files.
-legacy.mak: $(foreach x,${ALL_TGTS},${${x}_DEPS})
-	${MAKE} eval=info | egrep -v 'Nothing to be done' | awk '{if ($$1 == "-include") {file=$$2;while (i = getline < file) {print;}} else { print $$0 }}' > $@
+legacy.mak: ${top_srcdir}/boiler.mk ${top_srcdir}/Makefile \
+            $(foreach x,${ALL_TGTS},${${x}_DEPS})
+	${MAKE} eval=info | sed 's/    //' | awk '{if ($$1 == "-include") {file=$$2;while (i = getline < file) {print;}} else { print $$0 }}' > $@
+	@rm -f .bar .foo
 
 clean: legacy_clean
 
