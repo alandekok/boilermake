@@ -434,11 +434,11 @@ define INCLUDE_SUBMAKEFILE
         # Choose the correct linker.
 	ifeq "$$(strip $$(filter $${CXX_SRC_EXTS},$${$${TGT}_SOURCES}))" ""
             ifeq "$${$${TGT}_LINKER}" ""
-                $${TGT}_LINKER := $${LINKER_CC}
+                $${TGT}_LINKER := ${LL}$${LINKER_CC}
             endif
         else
             ifeq "$${$${TGT}_LINKER}" ""
-                $${TGT}_LINKER := $${LINKER_CXX}
+                $${TGT}_LINKER := ${LL}$${LINKER_CXX}
             endif
         endif
 
@@ -705,11 +705,14 @@ ifeq "${eval}" "info"
     LL := $$
     BUILD_DIR := build
 
+    $(info # -*- Makefile -*-)
     $(info # )
     $(info # High level definitions)
-    $(foreach x,CC CXX COMPILE_CC COMPILE_CXX CFLAGS CXXFLAGS LDFLAGS LIBS LIBTOOL INSTALL BUILD_DIR prefix \
-                exec_prefix sysconfdir localstatedir libdir bindir sbindir \
-                datarootdir docdir mandir datadir logdir includedir,\
+    $(foreach x,CC CXX LIBTOOL COMPILE_CC COMPILE_CXX CFLAGS CXXFLAGS \
+                BUILD_DIR LINKER_CC LINKER_CXX LDFLAGS LIBS INSTALL \
+                PROGRAM_INSTALL prefix  exec_prefix sysconfdir localstatedir \
+                libdir bindir sbindir  datarootdir docdir mandir datadir \
+                logdir includedir,\
         $(info ${x} = $(value ${x})))
     $(info )
     $(shell touch .foo)
