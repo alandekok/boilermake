@@ -8,7 +8,7 @@
 # set a few global definitions.  These will help control "boilermake"
 
 # The absolute path of the top-level source directory.
-top_srcdir	= $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+top_srcdir	:= $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
 # The default targets are "all" and "clean", and "install".
 # Additional targets are not yet supported.  e.g. if you want to make
