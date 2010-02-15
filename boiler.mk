@@ -25,7 +25,7 @@ define ADD_CLEAN_RULE
 
     .PHONY: clean_${1}
     clean_${1}:
-	$$(strip rm -f ${1} ${${1}_OBJS} $${${1}_OBJS:%.${OBJ_EXT}=%.[doP]})
+	rm -f ${1} ${${1}_OBJS} $${${1}_OBJS:%.${OBJ_EXT}=%.[doP]}
 	$${${1}_POSTCLEAN}
 
 endef
@@ -42,10 +42,32 @@ endef
 	@sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$$//' \
 	     -e '/^$$/ d' -e 's/$$/ :/' < $< >> $@
 
+# DIRNAME - Parameterized "function" that outputs a rule to find the
+#   directory name of the first argument.  It is defined in two forms.
+#
+#   The first is for use when creating "legacy.mak", which cannot use
+#   GNU Make extensions.
+#
+#   The second is for use with modern versions of GNU Make, which uses
+#   a make function instead of forking an external program.  This is
+#   more efficient, and marginally faster.
+#
+#   USE WITH EVAL
+#
+ifeq "${eval}" "info"
+define DIRNAME
+`dirname ${1}`
+endef
+else
+define DIRNAME
+$$(dir ${1})
+endef
+endif
+
 ifeq "${CC_MD}" "yes"
 # ADD_DEPEND_RULE.c - Parameterized "function" that adds a new rule which
 #   says that the .d file is generated automatically when the .o file is
-#   created.<
+#   created.
 #
 #   USE WITH EVAL
 #
@@ -64,7 +86,7 @@ else				# CC_MD
 #
 define ADD_DEPEND_RULE.c
     $${BUILD_DIR}/$(basename ${1}).d: ${1}
-	@mkdir -p $$(dir $$@)
+	@mkdir -p $(call DIRNAME,$$@)
 	$${CPP} $${CPPFLAGS} $${${2}_INCDIRS} $${${2}_DEFS} $$< \
                  | sed -n 's,^\# *[0-9][0-9]* *"\([^"]*\)".*,$${BUILD_DIR}/$(basename ${1}).${OBJ_EXT}: \1,p' \
                  | sed -e 's,: /usr\(.*\)$$$$,: ,' -e 's,: <\(.*\)$$$$,: ,' -e 's,^.*: $$$$,,' | sort | uniq > $$@
@@ -84,9 +106,9 @@ endif				# CC_MD
 #
 define ADD_COMPILE_RULE.c
     $${BUILD_DIR}/$(basename ${1}).${OBJ_EXT}: ${1}
-	@mkdir -p ${BUILD_DIR}/$(dir ${1})
-	$$(strip $${COMPILE_CC} -o $$@ -c $${CFLAGS} $${${2}_CFLAGS} \
-            $${${2}_INCDIRS} $${${2}_DEFS} $$<)
+	@mkdir -p $(call DIRNAME,$$@)
+	$${COMPILE_CC} -o $$@ -c $${CFLAGS} $${${2}_CFLAGS} \
+            $${${2}_INCDIRS} $${${2}_DEFS} $$<
 
 endef
 
@@ -102,9 +124,9 @@ endef
 #
 define ADD_COMPILE_RULE.cc
     $${BUILD_DIR}/$(basename ${1}).${OBJ_EXT}: ${1}
-	@mkdir -p ${BUILD_DIR}/$(dir ${1})
-	$$(strip $${COMPILE_CXX} -o $$@ -c $${CXXFLAGS} $${${2}_CXXFLAGS} \
-            $${${2}_INCDIRS} $${${2}_DEFS} $$<)
+	@mkdir -p $(call DIRNAME,$$@)
+	$${COMPILE_CXX} -o $$@ -c $${CXXFLAGS} $${${2}_CXXFLAGS} \
+            $${${2}_INCDIRS} $${${2}_DEFS} $$<
 
 endef
 
@@ -113,7 +135,7 @@ endef
 #   type of target that is used in the build.  
 #
 #   New rules can be added by copying one of the existing ones, and
-#   replacing the line containing $$(strip ...)
+#   replacing the line after the "mkdir"
 #
 
 # ADD_TARGET_RULE.exe - Build an executable target.
@@ -122,9 +144,9 @@ endef
 #
 define ADD_TARGET_RULE.exe
     ${1}: $${${1}_OBJS} $${${1}_PREREQS}
-	    @mkdir -p $$(dir $$@)
-	    $$(strip $${${1}_LINKER} -o ${1} $${LDFLAGS} $${${1}_LDFLAGS} \
-	        $${${1}_OBJS} $${${1}_PRLIBS} $${LDLIBS} $${${1}_LDLIBS})
+	    @mkdir -p $(call DIRNAME,$$@)
+	    $${${1}_LINKER} -o ${1} $${LDFLAGS} $${${1}_LDFLAGS} \
+	        $${${1}_OBJS} $${${1}_PRLIBS} $${LDLIBS} $${${1}_LDLIBS}
 	    $${${1}_POSTMAKE}
 
 endef
@@ -135,8 +157,8 @@ endef
 #
 define ADD_TARGET_RULE.a
     ${1}: $${${1}_OBJS} $${${1}_PREREQS}
-	    @mkdir -p $$(dir $$@)
-	    $$(strip $${AR} $${ARFLAGS} ${1} $${${1}_OBJS})
+	    @mkdir -p $(call DIRNAME,$$@)
+	    $${AR} $${ARFLAGS} ${1} $${${1}_OBJS}
 	    $${${1}_POSTMAKE}
 
 endef
@@ -171,9 +193,9 @@ endef
 #
 define ADD_TARGET_RULE.la
     ${1}: $${${1}_OBJS} $${${1}_PREREQS}
-	    @mkdir -p $$(dir $$@)
-	    $$(strip $${${1}_LINKER} -o ${1} $${LDFLAGS} $${${1}_LDFLAGS} \
-	        $${${1}_OBJS} $${LDLIBS} $${${1}_LDLIBS})
+	    @mkdir -p $(call DIRNAME,$$@)
+	    $${${1}_LINKER} -o ${1} $${LDFLAGS} $${${1}_LDFLAGS} \
+	        $${${1}_OBJS} $${LDLIBS} $${${1}_LDLIBS}
 	    $${${1}_POSTMAKE}
 
 endef
@@ -183,7 +205,7 @@ endef
 #   definition for each type of target that is used in the build.
 #
 #   New rules can be added by copying one of the existing ones, and
-#   replacing the line containing $$(strip ...)
+#   replacing the line after the "mkdir"
 #
 
 # ADD_INSTALL_RULE.exe - Parameterized "function" that adds a new rule
@@ -196,7 +218,7 @@ define ADD_INSTALL_RULE.exe
 
     $${${1}_INSTALLDIR}/$(notdir ${1}): ${1}
 	@mkdir -p $${${1}_INSTALLDIR}
-	$$(strip $${PROGRAM_INSTALL} -c -m 755 ${1} $${${1}_INSTALLDIR}/)
+	$${PROGRAM_INSTALL} -c -m 755 ${1} $${${1}_INSTALLDIR}/
 	$${${1}_POSTINSTALL}
 
 endef
@@ -211,7 +233,7 @@ define ADD_INSTALL_RULE.a
 
     $${${1}_INSTALLDIR}/$(notdir ${1}): ${1}
 	@mkdir -p $${${1}_INSTALLDIR}
-	$$(strip $${PROGRAM_INSTALL} -c -m 755 ${1} $${${1}_INSTALLDIR}/)
+	$${PROGRAM_INSTALL} -c -m 755 ${1} $${${1}_INSTALLDIR}/
 	$${${1}_POSTINSTALL}
 
 endef
@@ -226,7 +248,7 @@ define ADD_INSTALL_RULE.la
 
     $${${1}_INSTALLDIR}/$(notdir ${1}): ${1}
 	@mkdir -p $${${1}_INSTALLDIR}
-	$$(strip $${PROGRAM_INSTALL} -c -m 755 ${1} $${${1}_INSTALLDIR}/)
+	$${PROGRAM_INSTALL} -c -m 755 ${1} $${${1}_INSTALLDIR}/
 	$${${1}_POSTINSTALL}
 
 endef
@@ -242,7 +264,7 @@ define ADD_INSTALL_RULE.man
 
     ${2}/$(notdir ${1}): ${1}
 	@mkdir -p ${2}/
-	$$(strip $${PROGRAM_INSTALL} -c -m 644 ${1} ${2}/)
+	$${PROGRAM_INSTALL} -c -m 644 ${1} ${2}/
 
 endef
 
