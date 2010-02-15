@@ -38,7 +38,7 @@ endef
 # to not include the deleted header.
 #
 %.P: %.d
-	@cp $< $@
+	@cat $< | sed 's,${BUILD_DIR}/,${LL}$${BUILD_DIR}/,' > $@
 	@sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$$//' \
 	     -e '/^$$/ d' -e 's/$$/ :/' < $< >> $@
 
@@ -66,7 +66,7 @@ define ADD_DEPEND_RULE.c
     $${BUILD_DIR}/$(basename ${1}).d: ${1}
 	@mkdir -p $$(dir $$@)
 	$${CPP} $${CPPFLAGS} $${${2}_INCDIRS} $${${2}_DEFS} $$< \
-                 | sed -n 's,^\# *[0-9][0-9]* *"\([^"]*\)".*,$(basename ${1}).${OBJ_EXT}: \1,p' \
+                 | sed -n 's,^\# *[0-9][0-9]* *"\([^"]*\)".*,$${BUILD_DIR}/$(basename ${1}).${OBJ_EXT}: \1,p' \
                  | sed -e 's,: /usr\(.*\)$$$$,: ,' -e 's,: <\(.*\)$$$$,: ,' -e 's,^.*: $$$$,,' | sort | uniq > $$@
 
 endef				# ADD_DEPEND_RULE
@@ -404,7 +404,7 @@ define INCLUDE_SUBMAKEFILE
 
         # Convert the source file names to their corresponding object file
         # names.
-        OBJS := $$(addprefix $${BUILD_DIR}/,\
+        OBJS := $$(addprefix ${LL}$${BUILD_DIR}/,\
                    $$(addsuffix .${OBJ_EXT},$$(basename $${SOURCES})))
 
         # Add the objects to the current target's list of objects, and create
@@ -431,6 +431,17 @@ define INCLUDE_SUBMAKEFILE
 
     # If we're about to change targets, create the rules for the target
     ifneq "$${TGT}" "$$(call PEEK,$${TGT_STACK})"
+        # Choose the correct linker.
+	ifeq "$$(strip $$(filter $${CXX_SRC_EXTS},$${$${TGT}_SOURCES}))" ""
+            ifeq "$${$${TGT}_LINKER}" ""
+                $${TGT}_LINKER := $${LINKER_CC}
+            endif
+        else
+            ifeq "$${$${TGT}_LINKER}" ""
+                $${TGT}_LINKER := $${LINKER_CXX}
+            endif
+        endif
+
         # If the current directory is the a subdir of the one we're
         # building in, then build it.  We check for a subdir by
         # adding "_xyz" to the directory, and then substituting "_xyxROOT"
@@ -446,7 +457,7 @@ define INCLUDE_SUBMAKEFILE
                 $$(info all: $${TGT})
                 $$(info )
 
-                $$(foreach x, CFLAGS CXXFLAGS DEFS INCDIRS DEPS OBJS LDFLAGS LDLIBS POSTMAKE LINKER POSTCLEAN INSTALLDIR POSTINSTALL PREREQS PRLIBS DEPS OBJS SOURCES MAN,$$(info $${TGT}_$${x} := $${$${TGT}_$${x}}))
+                $$(foreach x, CFLAGS CXXFLAGS SOURCES DEPS DEFS INCDIRS OBJS LDFLAGS LDLIBS POSTMAKE LINKER POSTCLEAN INSTALLDIR POSTINSTALL PREREQS PRLIBS MAN,$$(info $${TGT}_$${x} := $${$${TGT}_$${x}}))
                 $$(info )
             endif
 
@@ -490,23 +501,20 @@ define INCLUDE_SUBMAKEFILE
         # For dependency tracking to work, we still add all targets
         # to the build system.
 
-        # Choose the correct linker.
-	ifeq "$$(strip $$(filter $${CXX_SRC_EXTS},$${$${TGT}_SOURCES}))" ""
-            ifeq "$${$${TGT}_LINKER}" ""
-                $${TGT}_LINKER := $${LINKER_CC}
-            endif
-        else
-            ifeq "$${$${TGT}_LINKER}" ""
-                $${TGT}_LINKER := $${LINKER_CXX}
-            endif
-        endif
-
         # add rules to build the target
         $$(${eval} $$(call ADD_TARGET_RULE$${$${TGT}_SUFFIX},$${TGT}))
 
         # include the dependency files of the target
         ifneq ($(MAKECMDGOALS),clean)
             $$(eval -include $${$${TGT}_DEPS})
+        endif
+
+        ifneq "${eval}" "eval"
+            $$(foreach x, $$(subst ${LL}$${BUILD_DIR},$${BUILD_DIR},$${$${TGT}_DEPS}),\
+                $$(info # )\
+                $$(info # Dependencies from $${x})\
+                $$(info -include $${x})\
+                $$(info ))
         endif
     endif
 
@@ -695,6 +703,16 @@ endif
 #
 ifeq "${eval}" "info"
     LL := $$
+    BUILD_DIR := build
+
+    $(info # )
+    $(info # High level definitions)
+    $(foreach x,CC CXX COMPILE_CC COMPILE_CXX CFLAGS CXXFLAGS LDFLAGS LIBS LIBTOOL INSTALL BUILD_DIR prefix \
+                exec_prefix sysconfdir localstatedir libdir bindir sbindir \
+                datarootdir docdir mandir datadir logdir includedir,\
+        $(info ${x} = $(value ${x})))
+    $(info )
+
 else
     eval=eval
 endif
@@ -702,3 +720,14 @@ endif
 # Include the main user-supplied submakefile. This also recursively includes
 # all other user-supplied submakefiles.
 $(eval $(call INCLUDE_SUBMAKEFILE,${RR}main.mk))
+
+# This depends on all of the generated ".P" files, which in turn create
+# dependencies on all of the headers && source files.
+legacy.mak: $(foreach x,${ALL_TGTS},${${x}_DEPS})
+	${MAKE} eval=info | egrep -v 'Nothing to be done' | awk '{if ($$1 == "-include") {file=$$2;while (i = getline < file) {print;}} else { print $$0 }}' > $@
+
+clean: legacy_clean
+
+.PHONY: legacy_clean
+legacy_clean:
+	@rm -f legacy.mak
