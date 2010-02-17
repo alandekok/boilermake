@@ -685,9 +685,9 @@ all: ${top_srcdir}/jlibtool
 jlibtool ${top_srcdir}/jlibtool: ${top_srcdir}/jlibtool.c
 	${CC} $< -o $@
 
-# do "clean" of jlibtool ONLY
+# do "clean" of jlibtool and 'legacy.mak' ONLY when in the top-level directory.
 ifeq "${SUBDIR}" ""
-clean: jlibtool_clean
+clean: jlibtool_clean legacy_clean
 
 .PHONY: jlibtool_clean
 jlibtool_clean:
@@ -766,8 +766,6 @@ legacy.mak: ${top_srcdir}/boiler.mk ${top_srcdir}/Makefile \
             $(foreach x,${ALL_TGTS},${${x}_DEPS})
 	${MAKE} eval=info | sed 's/    //' | awk '{if ($$1 == "-include") {file=$$2;while (i = getline < file) {print;}} else { print $$0 }}' > $@
 	@rm -f .bar .foo
-
-clean: legacy_clean
 
 .PHONY: legacy_clean
 legacy_clean:
