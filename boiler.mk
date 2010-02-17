@@ -464,24 +464,20 @@ define INCLUDE_SUBMAKEFILE
             endif
         endif
 
-        # If the current directory is the a subdir of the one we're
-        # building in, then build it.  We check for a subdir by
-        # adding "_xyz" to the directory, and then substituting "_xyxROOT"
-        # with ROOT.  If the result is DIR, then we're in a subdir.
-        ifeq "$$(abspath $${DIR})" "$$(abspath ${root}/$${SUBDIR})$$(subst _xyz$$(abspath ${root}/$${SUBDIR}),,_xyz$$(abspath $${DIR}))"
-            # Add the target to the default list of targets to be made
 
-            ifeq "${eval}" "eval"
-                all: $${TGT}
-            else
-                $$(info #)
-                $$(info # Rules for $${TGT})
-                $$(info all: $${TGT})
-                $$(info )
+        # Add the target to the default list of targets to be made
+        ifneq "${eval}" "eval"
+            $$(info #)
+            $$(info # Rules for $${TGT})
+            $$(info all: $${TGT})
+            $$(info )
 
-                $$(foreach x, CFLAGS CXXFLAGS SOURCES DEPS DEFS INCDIRS OBJS LDFLAGS LDLIBS POSTMAKE LINKER POSTCLEAN INSTALLDIR POSTINSTALL PREREQS PRLIBS MAN,$$(info $${TGT}_$${x} := $${$${TGT}_$${x}}))
-                $$(info )
-            endif
+            $$(foreach x, CFLAGS CXXFLAGS SOURCES DEPS DEFS INCDIRS OBJS \
+                          LDFLAGS LDLIBS POSTMAKE LINKER POSTCLEAN INSTALLDIR \
+                          POSTINSTALL PREREQS PRLIBS MAN,\
+               $$(info $${TGT}_$${x} := $${$${TGT}_$${x}}))
+            $$(info )
+        endif
 
         # If the C compiler generates dependencies, print rules saying
         # that the .d file depends on the .o file.
@@ -493,6 +489,22 @@ define INCLUDE_SUBMAKEFILE
 
         $$(foreach C,$$(filter $${C_SRC_EXTS},$${$${TGT}_SOURCES}),\
             $$(${eval} $$(call ADD_COMPILE_RULE.c,$${C},$${TGT})))
+
+        # For dependency tracking to work, we still add all targets
+        # to the build system.
+
+        # add rules to build the target
+        $$(${eval} $$(call ADD_TARGET_RULE$${$${TGT}_SUFFIX},$${TGT}))
+
+        # If the current directory is the a subdir of the one we're
+        # building in, then build it.  We check for a subdir by
+        # adding "_xyz" to the directory, and then substituting "_xyxROOT"
+        # with ROOT.  If the result is DIR, then we're in a subdir.
+        ifeq "$$(abspath $${DIR})" "$$(abspath ${root}/$${SUBDIR})$$(subst _xyz$$(abspath ${root}/$${SUBDIR}),,_xyz$$(abspath $${DIR}))"
+            # Add the target to the default list of targets to be made
+            ifeq "${eval}" "eval"
+                all: $${TGT}
+             endif
 
             # do installs only if we have an installation program.
             ifneq "${INSTALL}" ""
@@ -519,12 +531,6 @@ define INCLUDE_SUBMAKEFILE
             # add rules to clean the output files
             $$(${eval} $$(call ADD_CLEAN_RULE,$${TGT}))
         endif
-
-        # For dependency tracking to work, we still add all targets
-        # to the build system.
-
-        # add rules to build the target
-        $$(${eval} $$(call ADD_TARGET_RULE$${$${TGT}_SUFFIX},$${TGT}))
 
         # include the dependency files of the target
         ifneq ($(MAKECMDGOALS),clean)
