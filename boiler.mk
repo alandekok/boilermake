@@ -604,7 +604,7 @@ endif
 # and set the "root ref" variable.  If we're at the top, set the root ref
 # to be empty.
 #
-RR := $(dir $(lastword $(MAKEFILE_LIST)))
+RR := $(dir $(word 2, ${MAKEFILE_LIST}))
 ifeq "${RR}" "./"
   RR := 
 else ifeq "${RR}" "$(call CANONICAL_PATH,${RR})/"
