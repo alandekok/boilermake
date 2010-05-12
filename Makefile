@@ -41,6 +41,50 @@ define ADD_CLEAN_RULE
 	$${${1}_POSTCLEAN}
 endef
 
+# FILTER_DEPENDS: function to turn a *.d file into a *.P file.
+#   We start off with the dependencies as created by the compiler,
+#   CPP, or makedepend.  We then ensure that there is an empty dependency
+#   for each header file.  The blank target ensures that the build
+#   can proceed even if the header file has been deleted.
+#
+#  1) Filter the .d file to remove unnecessary cruft
+#
+#	remove comments
+#	remove empty dependencies on global include files
+#	remove dependencies on global include files
+#	remove CPP hacks like "foo: <built-in>"
+#	delete empty continuation lines
+#	delete blank lines#
+#	
+#  2) Create empty dependencies from the files
+#
+#	remove comments
+#	remove empty dependencies on global include files
+#	remove dependencies on global include files
+#	remove existing targets
+#	remove continuations (to make the targets stand by themselves)
+#	delete blank lines
+#	add in empty dependency for each file.
+#
+define FILTER_DEPENDS
+	@sed  -e 's/#.*//' \
+	  -e 's,^ */[^:]* *: *$$$$,,' \
+	  -e 's, /[^: ]*,,g' \
+	  -e '/: </ d' \
+	  -e '/^ *\\$$$$/ d' \
+	  -e '/^$$$$/ d' \
+	  < $${BUILD_DIR}/$$*.d > $${BUILD_DIR}/$$*.P
+	@sed -e 's/#.*//' \
+	  -e 's,^ */[^:]* *: *$$$$,,' \
+	  -e 's, /[^: ]*,,g' \
+	  -e 's/^[^:]*: *//' \
+	  -e 's/ *\\$$$$//' \
+	  -e '/^$$$$/ d' \
+	  -e 's/$$$$/ :/' \
+	  < $${BUILD_DIR}/$$*.d >> $${BUILD_DIR}/$$*.P
+	 rm -f $${BUILD_DIR}/$$*.d
+endef
+
 # ADD_OBJECT_RULE - Parameterized "function" that adds a pattern rule, using
 #   the commands from the second argument, for building object files from
 #   source files with the filename extension specified in the first argument.
@@ -50,6 +94,7 @@ endef
 define ADD_OBJECT_RULE
 $${BUILD_DIR}/%.o: ${1}
 	${2}
+${FILTER_DEPENDS}
 endef
 
 # ADD_TARGET_RULE.* - Parameterized "functions" that adds a new target to the
@@ -127,11 +172,6 @@ define COMPILE_C_CMDS
 	@mkdir -p $(dir $@)
 	$(strip ${CC} -o $@ -c -MD ${CFLAGS} ${SRC_CFLAGS} ${INCDIRS} \
 	    ${SRC_INCDIRS} ${SRC_DEFS} ${DEFS} $<)
-	@cp ${BUILD_DIR}/$*.d ${BUILD_DIR}/$*.P; \
-	 sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$$//' \
-	     -e '/^$$/ d' -e 's/$$/ :/' < ${BUILD_DIR}/$*.d \
-	     >> ${BUILD_DIR}/$*.P; \
-	 rm -f ${BUILD_DIR}/$*.d
 endef
 
 # COMPILE_CXX_CMDS - Commands for compiling C++ source code.
@@ -139,11 +179,6 @@ define COMPILE_CXX_CMDS
 	@mkdir -p $(dir $@)
 	$(strip ${CXX} -o $@ -c -MD ${CXXFLAGS} ${SRC_CXXFLAGS} ${INCDIRS} \
 	    ${SRC_INCDIRS} ${SRC_DEFS} ${DEFS} $<)
-	@cp ${BUILD_DIR}/$*.d ${BUILD_DIR}/$*.P; \
-	 sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$$//' \
-	     -e '/^$$/ d' -e 's/$$/ :/' < ${BUILD_DIR}/$*.d \
-	     >> ${BUILD_DIR}/$*.P; \
-	 rm -f ${BUILD_DIR}/$*.d
 endef
 
 # INCLUDE_SUBMAKEFILE - Parameterized "function" that includes a new
