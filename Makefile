@@ -52,45 +52,6 @@ $${BUILD_DIR}/%.o: ${1}
 	${2}
 endef
 
-# ADD_TARGET_RULE - Parameterized "function" that adds a new target to the
-#   Makefile. The target may be an executable or a library. The two allowable
-#   types of targets are distinguished based on the name: library targets must
-#   end with the traditional ".a" extension.
-#
-#   USE WITH EVAL
-#
-define ADD_TARGET_RULE
-    ifeq "$$(suffix ${1})" ".a"
-        # Add a target for creating a static library.
-        ${1}: $${${1}_OBJS}
-	    @mkdir -p $$(dir $$@)
-	    $$(strip $${AR} $${ARFLAGS} ${1} $${${1}_OBJS})
-	    $${TGT_POSTMAKE}
-    else
-        # Add a target for linking an executable. First, attempt to select the
-        # appropriate front-end to use for linking. This might not choose the
-        # right one (e.g. if linking with a C++ static library, but all other
-        # sources are C sources), so the user makefile is allowed to specify a
-        # linker to be used for each target.
-        ifeq "$$(strip $${${1}_LINKER})" ""
-            # No linker was explicitly specified to be used for this target. If
-            # there are any C++ sources for this target, use the C++ compiler.
-            # For all other targets, default to using the C compiler.
-            ifneq "$$(strip $$(filter $${CXX_SRC_EXTS},$${${1}_SOURCES}))" ""
-                ${1}: TGT_LINKER = $${CXX}
-            else
-                ${1}: TGT_LINKER = $${CC}
-            endif
-        endif
-
-        ${1}: $${${1}_OBJS} $${${1}_PREREQS}
-	    @mkdir -p $$(dir $$@)
-	    $$(strip $${TGT_LINKER} -o ${1} $${LDFLAGS} $${TGT_LDFLAGS} \
-	        $${${1}_OBJS} $${LDLIBS} $${TGT_LDLIBS})
-	    $${TGT_POSTMAKE}
-    endif
-endef
-
 # ADD_TARGET_RULE.* - Parameterized "functions" that adds a new target to the
 #   Makefile.  There should be one ADD_TARGET_RULE definition for each
 #   type of target that is used in the build.  
@@ -237,16 +198,16 @@ define INCLUDE_SUBMAKEFILE
         # makefile apply to this new target. Initialize the target's variables.
         TGT := $$(strip $${TARGET_DIR}/$${TARGET})
         ALL_TGTS += $${TGT}
-        $${TGT}: TGT_LDFLAGS := $${TGT_LDFLAGS}
-        $${TGT}: TGT_LDLIBS := $${TGT_LDLIBS}
-        $${TGT}: TGT_LINKER := $${TGT_LINKER}
-        $${TGT}: TGT_POSTMAKE := $${TGT_POSTMAKE}
+        $${TGT}_LDFLAGS := $${TGT_LDFLAGS}
+        $${TGT}_LDLIBS := $${TGT_LDLIBS}
         $${TGT}_LINKER := $${TGT_LINKER}
+        $${TGT}_POSTMAKE := $${TGT_POSTMAKE}
         $${TGT}_POSTCLEAN := $${TGT_POSTCLEAN}
         $${TGT}_PREREQS := $$(addprefix $${TARGET_DIR}/,$${TGT_PREREQS})
         $${TGT}_DEPS :=
         $${TGT}_OBJS :=
         $${TGT}_SOURCES :=
+        $${TGT}_SUFFIX := $$(if $$(suffix $${TGT}),$$(suffix $${TGT}),.exe)
     else
         # The values defined by this makefile apply to the the "current" target
         # as determined by which target is at the top of the stack.
@@ -302,6 +263,20 @@ define INCLUDE_SUBMAKEFILE
     # If we're about to change targets, create the rules for the target
     ifneq "$${TGT}" "$$(call PEEK,$${TGT_STACK})"
         all: $${TGT}
+
+        # Choose the correct linker.
+        ifeq "$$(strip $$(filter $${CXX_SRC_EXTS},$${$${TGT}_SOURCES}))" ""
+            ifeq "$${$${TGT}_LINKER}" ""
+                $${TGT}_LINKER := $${LINK.c}
+            endif
+        else
+            ifeq "$${$${TGT}_LINKER}" ""
+                $${TGT}_LINKER := $${LINK.cxx}
+            endif
+        endif
+
+        # add rules to build the target
+        $$(eval $$(call ADD_TARGET_RULE$${$${TGT}_SUFFIX},$${TGT}))
 
         # generate the clean rule for this target.
         $$(eval $$(call ADD_CLEAN_RULE,$${TGT}))
@@ -379,6 +354,13 @@ DIR_STACK :=
 INCDIRS :=
 TGT_STACK :=
 
+# Define compilers and linkers
+#
+COMPILE.c = ${CC}
+COMPILE.cxx = ${CXX}
+LINK.c = ${CC}
+LINK.cxx = ${CXX}
+
 # Define the "all" target (which simply builds all user-defined targets) as the
 # default goal.
 .PHONY: all
@@ -395,10 +377,6 @@ $(eval $(call INCLUDE_SUBMAKEFILE,main.mk))
 # Perform post-processing on global variables as needed.
 DEFS := $(addprefix -D,${DEFS})
 INCDIRS := $(addprefix -I,$(call CANONICAL_PATH,${INCDIRS}))
-
-# Add a new target rule for each user-defined target.
-$(foreach TGT,${ALL_TGTS},\
-  $(eval $(call ADD_TARGET_RULE,${TGT})))
 
 # Add pattern rule(s) for creating compiled object code from C source.
 $(foreach EXT,${C_SRC_EXTS},\
