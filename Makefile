@@ -239,6 +239,11 @@ define INCLUDE_SUBMAKEFILE
 
     # Reset the "current" target to it's previous value.
     TGT_STACK := $$(call POP,$${TGT_STACK})
+    # If we're about to change targets, create the rules for the target
+    ifneq "$${TGT}" "$$(call PEEK,$${TGT_STACK})"
+        all: $${TGT}
+    endif
+
     TGT := $$(call PEEK,$${TGT_STACK})
 
     # Reset the "current" directory to it's previous value.
@@ -311,6 +316,11 @@ DIR_STACK :=
 INCDIRS :=
 TGT_STACK :=
 
+# Define the "all" target (which simply builds all user-defined targets) as the
+# default goal.
+.PHONY: all
+all: 
+
 # Include the main user-supplied submakefile. This also recursively includes
 # all other user-supplied submakefiles.
 $(eval $(call INCLUDE_SUBMAKEFILE,main.mk))
@@ -318,11 +328,6 @@ $(eval $(call INCLUDE_SUBMAKEFILE,main.mk))
 # Perform post-processing on global variables as needed.
 DEFS := $(addprefix -D,${DEFS})
 INCDIRS := $(addprefix -I,$(call CANONICAL_PATH,${INCDIRS}))
-
-# Define the "all" target (which simply builds all user-defined targets) as the
-# default goal.
-.PHONY: all
-all: ${ALL_TGTS}
 
 # Add a new target rule for each user-defined target.
 $(foreach TGT,${ALL_TGTS},\
