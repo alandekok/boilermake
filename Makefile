@@ -91,6 +91,66 @@ define ADD_TARGET_RULE
     endif
 endef
 
+# ADD_TARGET_RULE.* - Parameterized "functions" that adds a new target to the
+#   Makefile.  There should be one ADD_TARGET_RULE definition for each
+#   type of target that is used in the build.  
+#
+#   New rules can be added by copying one of the existing ones, and
+#   replacing the line after the "mkdir"
+#
+
+# ADD_TARGET_RULE.exe - Build an executable target.
+#
+#   USE WITH EVAL
+#
+define ADD_TARGET_RULE.exe
+    # Create executable ${1}
+    ${1}: $${${1}_OBJS} $${${1}_PREREQS}
+	    @$(strip mkdir -p $(dir $$@))
+	    $${${1}_LINKER} -o $$@ $${RPATH_FLAGS} $${LDFLAGS} \
+                $${${1}_LDFLAGS} $${${1}_OBJS} $${${1}_PRLIBS} \
+                $${LDLIBS} $${${1}_LDLIBS}
+	    $${${1}_POSTMAKE}
+
+endef
+
+# ADD_TARGET_RULE.a - Build a static library target.
+#
+#   USE WITH EVAL
+#
+define ADD_TARGET_RULE.a
+    # Create static library ${1}
+    ${1}: $${${1}_OBJS} $${${1}_PREREQS}
+	    @$(strip mkdir -p $(dir $$@))
+	    $${AR} $${ARFLAGS} ${1} $${${1}_OBJS}
+	    $${${1}_POSTMAKE}
+
+endef
+
+# ADD_TARGET_RULE.so - Build a ".so" target.
+#
+#   USE WITH EVAL
+#
+define ADD_TARGET_RULE.so
+$(error Please add rules to build a ".so" file.)
+endef
+
+# ADD_TARGET_RULE.dll - Build a ".dll" target.
+#
+#   USE WITH EVAL
+#
+define ADD_TARGET_RULE.dll
+$(error Please add rules to build a ".dll" file.)
+endef
+
+# ADD_TARGET_RULE.dylib - Build a ".dylib" target.
+#
+#   USE WITH EVAL
+#
+define ADD_TARGET_RULE.dylib
+$(error Please add rules to build a ".dylib" file.)
+endef
+
 # CANONICAL_PATH - Given one or more paths, converts the paths to the canonical
 #   form. The canonical form is the path, relative to the project's top-level
 #   directory (the directory from which "make" is run), and without
