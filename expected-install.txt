@@ -1,0 +1,6 @@
+R/usr
+R/usr/local
+R/usr/local/bin
+R/usr/local/bin/talk
+R/usr/local/lib
+R/usr/local/lib/libanimals.a

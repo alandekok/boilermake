@@ -214,6 +214,8 @@ define INCLUDE_SUBMAKEFILE
     TGT_POSTCLEAN :=
     TGT_POSTMAKE :=
     TGT_PREREQS :=
+    TGT_POSTINSTALL :=
+    TGT_INSTALLDIR := ..
 
     SOURCES :=
     SRC_CFLAGS :=
@@ -255,6 +257,7 @@ define INCLUDE_SUBMAKEFILE
         $${TGT}_LINKER := $${TGT_LINKER}
         $${TGT}_POSTMAKE := $${TGT_POSTMAKE}
         $${TGT}_POSTCLEAN := $${TGT_POSTCLEAN}
+        $${TGT}_POSTINSTALL := $${TGT_POSTINSTALL}
         $${TGT}_PREREQS := $$(addprefix $${TARGET_DIR}/,$${TGT_PREREQS})
         $${TGT}_DEPS :=
         $${TGT}_OBJS :=
@@ -332,6 +335,9 @@ define INCLUDE_SUBMAKEFILE
 
         # generate the clean rule for this target.
         $$(eval $$(call ADD_CLEAN_RULE,$${TGT}))
+
+        # Hook to add an installation target
+        $$(eval $$(call ADD_INSTALL_TARGET,$${TGT}))
     endif
 
     TGT := $$(call PEEK,$${TGT_STACK})
@@ -421,6 +427,9 @@ all:
 # Add "clean" rules to remove all build-generated files.
 .PHONY: clean
 clean:
+
+top_makedir := $(dir $(lastword ${MAKEFILE_LIST}))
+-include ${top_makedir}/install.mk
 
 # Include the main user-supplied submakefile. This also recursively includes
 # all other user-supplied submakefiles.
