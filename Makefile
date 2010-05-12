@@ -37,7 +37,7 @@ define ADD_CLEAN_RULE
     clean: clean_${1}
     .PHONY: clean_${1}
     clean_${1}:
-	$$(strip rm -f ${1} $${${1}_OBJS:%.o=%.[doP]})
+	$$(strip rm -f ${1} ${${1}_OBJS} $${${1}_OBJS:%.${OBJ_EXT}=%.[doP]})
 	$${${1}_POSTCLEAN}
 endef
 
@@ -99,7 +99,7 @@ endef
 #
 ifeq "${CPP_MAKEDEPEND}" "yes"
 define ADD_OBJECT_RULE
-$${BUILD_DIR}/%.o: ${1}
+$${BUILD_DIR}/%.${OBJ_EXT}: ${1}
 	${2}
 	$${CPP} $${CPPFLAGS} $${SRC_INCDIRS} $${SRC_DEFS} $$< | sed \
 	  -n 's,^\# *[0-9][0-9]* *"\([^"]*\)".*,$$@: \1,p' > $${BUILD_DIR}/$$*.d
@@ -108,7 +108,7 @@ endef
 
 else
 define ADD_OBJECT_RULE
-$${BUILD_DIR}/%.o: ${1}
+$${BUILD_DIR}/%.${OBJ_EXT}: ${1}
 	${2}
 ${FILTER_DEPENDS}
 endef
@@ -292,13 +292,13 @@ define INCLUDE_SUBMAKEFILE
         # Convert the source file names to their corresponding object file
         # names.
         OBJS := $$(addprefix $${BUILD_DIR}/,\
-                   $$(addsuffix .o,$$(basename $${SOURCES})))
+                   $$(addsuffix .${OBJ_EXT},$$(basename $${SOURCES})))
 
         # Add the objects to the current target's list of objects, and create
         # target-specific variables for the objects based on any source
         # variables that were defined.
         $${TGT}_OBJS += $${OBJS}
-        $${TGT}_DEPS += $${OBJS:%.o=%.P}
+        $${TGT}_DEPS += $${OBJS:%.${OBJ_EXT}=%.P}
         $${OBJS}: SRC_CFLAGS := $${SRC_CFLAGS}
         $${OBJS}: SRC_CXXFLAGS := $${SRC_CXXFLAGS}
         $${OBJS}: SRC_DEFS := $$(addprefix -D,$${SRC_DEFS})
@@ -401,6 +401,7 @@ ifneq "${MIN_MAKE_VERSION}" "$(call MIN,${MIN_MAKE_VERSION},${MAKE_VERSION})"
 endif
 
 # Define the source file extensions that we know how to handle.
+OBJ_EXT := o
 C_SRC_EXTS := %.c
 CXX_SRC_EXTS := %.C %.cc %.cp %.cpp %.CPP %.cxx %.c++
 ALL_SRC_EXTS := ${C_SRC_EXTS} ${CXX_SRC_EXTS}
@@ -429,6 +430,7 @@ all:
 clean:
 
 top_makedir := $(dir $(lastword ${MAKEFILE_LIST}))
+
 -include ${top_makedir}/install.mk
 
 # Include the main user-supplied submakefile. This also recursively includes
