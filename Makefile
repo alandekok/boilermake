@@ -242,6 +242,9 @@ define INCLUDE_SUBMAKEFILE
     # If we're about to change targets, create the rules for the target
     ifneq "$${TGT}" "$$(call PEEK,$${TGT_STACK})"
         all: $${TGT}
+
+        # generate the clean rule for this target.
+        $$(eval $$(call ADD_CLEAN_RULE,$${TGT}))
     endif
 
     TGT := $$(call PEEK,$${TGT_STACK})
@@ -321,6 +324,10 @@ TGT_STACK :=
 .PHONY: all
 all: 
 
+# Add "clean" rules to remove all build-generated files.
+.PHONY: clean
+clean:
+
 # Include the main user-supplied submakefile. This also recursively includes
 # all other user-supplied submakefiles.
 $(eval $(call INCLUDE_SUBMAKEFILE,main.mk))
@@ -340,11 +347,6 @@ $(foreach EXT,${C_SRC_EXTS},\
 # Add pattern rule(s) for creating compiled object code from C++ source.
 $(foreach EXT,${CXX_SRC_EXTS},\
   $(eval $(call ADD_OBJECT_RULE,${EXT},$${COMPILE_CXX_CMDS})))
-
-# Add "clean" rules to remove all build-generated files.
-.PHONY: clean
-$(foreach TGT,${ALL_TGTS},\
-  $(eval $(call ADD_CLEAN_RULE,${TGT})))
 
 # Include generated rules that define additional (header) dependencies.
 $(foreach TGT,${ALL_TGTS},\
