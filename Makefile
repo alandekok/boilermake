@@ -47,43 +47,49 @@ endef
 #   for each header file.  The blank target ensures that the build
 #   can proceed even if the header file has been deleted.
 #
+#  COMMON filters:
+#	remove comments
+#	remove dependencies on global include files
+#	remove empty dependencies
+#	remove CPP hacks like "foo: <built-in>"
+#
 #  1) Filter the .d file to remove unnecessary cruft
 #
-#	remove comments
-#	remove empty dependencies on global include files
-#	remove dependencies on global include files
-#	remove CPP hacks like "foo: <built-in>"
+#	COMMON
 #	delete empty continuation lines
-#	delete blank lines#
+#	delete blank lines
+#	remove sequential duplicate lines
 #	
 #  2) Create empty dependencies from the files
 #
-#	remove comments
-#	remove empty dependencies on global include files
-#	remove dependencies on global include files
+#	COMMON
 #	remove existing targets
 #	remove continuations (to make the targets stand by themselves)
 #	delete blank lines
 #	add in empty dependency for each file.
+#	remove sequential duplicate lines
 #
 define FILTER_DEPENDS
 	@sed  -e 's/#.*//' \
-	  -e 's,^ */[^:]* *: *$$$$,,' \
 	  -e 's, /[^: ]*,,g' \
+	  -e 's,^ *[^:]* *: *$$$$,,' \
 	  -e '/: </ d' \
 	  -e '/^ *\\$$$$/ d' \
 	  -e '/^$$$$/ d' \
-	  < $${BUILD_DIR}/$$*.d > $${BUILD_DIR}/$$*.P
+	  < $${BUILD_DIR}/$$*.d | sed -e '$$$$!N; /^\(.*\)\n\1$$$$/!P; D' \
+	  >  $${BUILD_DIR}/$$*.P
 	@sed -e 's/#.*//' \
-	  -e 's,^ */[^:]* *: *$$$$,,' \
 	  -e 's, /[^: ]*,,g' \
+	  -e 's,^ *[^:]* *: *$$$$,,' \
+	  -e '/: </ d' \
 	  -e 's/^[^:]*: *//' \
 	  -e 's/ *\\$$$$//' \
 	  -e '/^$$$$/ d' \
 	  -e 's/$$$$/ :/' \
-	  < $${BUILD_DIR}/$$*.d >> $${BUILD_DIR}/$$*.P
-	 rm -f $${BUILD_DIR}/$$*.d
+	  < $${BUILD_DIR}/$$*.d | sed -e '$$$$!N; /^\(.*\)\n\1$$$$/!P; D' \
+	 >> $${BUILD_DIR}/$$*.P
 endef
+#	 rm -f $${BUILD_DIR}/$$*.d
 
 # ADD_OBJECT_RULE - Parameterized "function" that adds a pattern rule, using
 #   the commands from the second argument, for building object files from
@@ -91,11 +97,22 @@ endef
 #
 #   USE WITH EVAL
 #
+ifeq "${CPP_MAKEDEPEND}" "yes"
+define ADD_OBJECT_RULE
+$${BUILD_DIR}/%.o: ${1}
+	${2}
+	$${CPP} $${CPPFLAGS} $${SRC_INCDIRS} $${SRC_DEFS} $$< | sed \
+	  -n 's,^\# *[0-9][0-9]* *"\([^"]*\)".*,$$@: \1,p' > $${BUILD_DIR}/$$*.d
+${FILTER_DEPENDS}
+endef
+
+else
 define ADD_OBJECT_RULE
 $${BUILD_DIR}/%.o: ${1}
 	${2}
 ${FILTER_DEPENDS}
 endef
+endif
 
 # ADD_TARGET_RULE.* - Parameterized "functions" that adds a new target to the
 #   Makefile.  There should be one ADD_TARGET_RULE definition for each
