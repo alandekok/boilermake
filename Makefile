@@ -37,7 +37,7 @@ define ADD_CLEAN_RULE
     clean: clean_${1}
     .PHONY: clean_${1}
     clean_${1}:
-	$$(strip rm -f ${1} ${${1}_NOLIBTOOL} ${${1}_OBJS} $${${1}_OBJS:%.${OBJ_EXT}=%.[doP]})
+	$$(strip rm -f ${1} ${${1}_NOLIBTOOL} ${${1}_OBJS} ${${1}_DEPS} $${${1}_OBJS:%.${OBJ_EXT}=%.[do]})
 	$${${1}_POSTCLEAN}
 endef
 
@@ -70,6 +70,7 @@ endef
 #	remove sequential duplicate lines
 #
 define FILTER_DEPENDS
+	@mkdir -p $$(dir $${BUILD_DIR}/make/$$*)
 	@sed  -e 's/#.*//' \
 	  -e 's, /[^: ]*,,g' \
 	  -e 's,^ *[^:]* *: *$$$$,,' \
@@ -77,7 +78,7 @@ define FILTER_DEPENDS
 	  -e '/^ *\\$$$$/ d' \
 	  -e '/^$$$$/ d' \
 	  < $${BUILD_DIR}/$$*.d | sed -e '$$$$!N; /^\(.*\)\n\1$$$$/!P; D' \
-	  >  $${BUILD_DIR}/$$*.P
+	  >  $${BUILD_DIR}/make/$$*.P
 	@sed -e 's/#.*//' \
 	  -e 's, /[^: ]*,,g' \
 	  -e 's,^ *[^:]* *: *$$$$,,' \
@@ -87,7 +88,7 @@ define FILTER_DEPENDS
 	  -e '/^$$$$/ d' \
 	  -e 's/$$$$/ :/' \
 	  < $${BUILD_DIR}/$$*.d | sed -e '$$$$!N; /^\(.*\)\n\1$$$$/!P; D' \
-	 >> $${BUILD_DIR}/$$*.P
+	 >> $${BUILD_DIR}/make/$$*.P
 endef
 #	 rm -f $${BUILD_DIR}/$$*.d
 
@@ -295,7 +296,8 @@ define INCLUDE_SUBMAKEFILE
         # target-specific variables for the objects based on any source
         # variables that were defined.
         $${TGT}_OBJS += $${OBJS}
-        $${TGT}_DEPS += $${OBJS:%.${OBJ_EXT}=%.P}
+        $${TGT}_DEPS += $$(addprefix $${BUILD_DIR}/make/,\
+                   $$(addsuffix .P,$$(basename $${SOURCES})))
         $${OBJS}: SRC_CFLAGS := $${SRC_CFLAGS}
         $${OBJS}: SRC_CXXFLAGS := $${SRC_CXXFLAGS}
         $${OBJS}: SRC_DEFS := $$(addprefix -D,$${SRC_DEFS})
