@@ -71,13 +71,14 @@ endef
 #
 define FILTER_DEPENDS
 	@mkdir -p $$(dir $${BUILD_DIR}/make/$$*)
+	@mkdir -p $$(dir $${BUILD_DIR}/objs/$$*)
 	@sed  -e 's/#.*//' \
 	  -e 's, /[^: ]*,,g' \
 	  -e 's,^ *[^:]* *: *$$$$,,' \
 	  -e '/: </ d' \
 	  -e '/^ *\\$$$$/ d' \
 	  -e '/^$$$$/ d' \
-	  < $${BUILD_DIR}/$$*.d | sed -e '$$$$!N; /^\(.*\)\n\1$$$$/!P; D' \
+	  < $${BUILD_DIR}/objs/$$*.d | sed -e '$$$$!N; /^\(.*\)\n\1$$$$/!P; D' \
 	  >  $${BUILD_DIR}/make/$$*.P
 	@sed -e 's/#.*//' \
 	  -e 's, /[^: ]*,,g' \
@@ -87,10 +88,10 @@ define FILTER_DEPENDS
 	  -e 's/ *\\$$$$//' \
 	  -e '/^$$$$/ d' \
 	  -e 's/$$$$/ :/' \
-	  < $${BUILD_DIR}/$$*.d | sed -e '$$$$!N; /^\(.*\)\n\1$$$$/!P; D' \
+	  < $${BUILD_DIR}/objs/$$*.d | sed -e '$$$$!N; /^\(.*\)\n\1$$$$/!P; D' \
 	 >> $${BUILD_DIR}/make/$$*.P
+	 rm -f $${BUILD_DIR}/objs/$$*.d
 endef
-#	 rm -f $${BUILD_DIR}/$$*.d
 
 # ADD_OBJECT_RULE - Parameterized "function" that adds a pattern rule, using
 #   the commands from the second argument, for building object files from
@@ -100,16 +101,16 @@ endef
 #
 ifeq "${CPP_MAKEDEPEND}" "yes"
 define ADD_OBJECT_RULE
-$${BUILD_DIR}/%.${OBJ_EXT}: ${1}
+$${BUILD_DIR}/objs/%.${OBJ_EXT}: ${1}
 	${2}
 	$${CPP} $${CPPFLAGS} $${SRC_INCDIRS} $${SRC_DEFS} $$< | sed \
-	  -n 's,^\# *[0-9][0-9]* *"\([^"]*\)".*,$$@: \1,p' > $${BUILD_DIR}/$$*.d
+	  -n 's,^\# *[0-9][0-9]* *"\([^"]*\)".*,$$@: \1,p' > $${BUILD_DIR}/objs/$$*.d
 ${FILTER_DEPENDS}
 endef
 
 else
 define ADD_OBJECT_RULE
-$${BUILD_DIR}/%.${OBJ_EXT}: ${1}
+$${BUILD_DIR}/objs/%.${OBJ_EXT}: ${1}
 	${2}
 ${FILTER_DEPENDS}
 endef
@@ -130,7 +131,7 @@ endif
 define ADD_TARGET_RULE.exe
     # Create executable ${1}
     ${1}: $${${1}_OBJS} $${${1}_PREREQS} $${${1}_PRLIBS}
-	    @$(strip mkdir -p $(dir $$@))
+	    @$(strip mkdir -p $(dir ${1}))
 	    $${${1}_LINKER} -o $$@ $${RPATH_FLAGS} $${LDFLAGS} \
                 $${${1}_LDFLAGS} $${${1}_OBJS} $${${1}_PRLIBS} \
                 $${LDLIBS} $${${1}_LDLIBS}
@@ -145,7 +146,7 @@ endef
 define ADD_TARGET_RULE.a
     # Create static library ${1}
     ${1}: $${${1}_OBJS} $${${1}_PREREQS}
-	    @$(strip mkdir -p $(dir $$@))
+	    @$(strip mkdir -p $(dir ${1}))
 	    $${AR} $${ARFLAGS} ${1} $${${1}_OBJS}
 	    $${${1}_POSTMAKE}
 
@@ -289,7 +290,7 @@ define INCLUDE_SUBMAKEFILE
 
         # Convert the source file names to their corresponding object file
         # names.
-        OBJS := $$(addprefix $${BUILD_DIR}/,\
+        OBJS := $$(addprefix $${BUILD_DIR}/objs/,\
                    $$(addsuffix .${OBJ_EXT},$$(basename $${SOURCES})))
 
         # Add the objects to the current target's list of objects, and create

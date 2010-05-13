@@ -84,7 +84,7 @@ endef
 define ADD_TARGET_RULE.la
     # Create libtool library ${1}
     ${1}: $${${1}_OBJS} $${${1}_PREREQS}
-	    @$(strip mkdir -p $$(dir $$@))
+	    @$(strip mkdir -p $(dir ${1}))
 	    $${${1}_LINKER} -o $$@ $${RPATH_FLAGS} $${LDFLAGS} \
                 $${${1}_LDFLAGS} $${${1}_OBJS} $${LDLIBS} $${${1}_LDLIBS}
 	    $${${1}_POSTMAKE}
