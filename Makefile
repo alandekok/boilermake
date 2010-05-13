@@ -37,7 +37,7 @@ define ADD_CLEAN_RULE
     clean: clean_${1}
     .PHONY: clean_${1}
     clean_${1}:
-	$$(strip rm -f ${1} ${${1}_OBJS} $${${1}_OBJS:%.${OBJ_EXT}=%.[doP]})
+	$$(strip rm -f ${1} ${${1}_NOLIBTOOL} ${${1}_OBJS} $${${1}_OBJS:%.${OBJ_EXT}=%.[doP]})
 	$${${1}_POSTCLEAN}
 endef
 
@@ -243,6 +243,10 @@ define INCLUDE_SUBMAKEFILE
         # This makefile defined a new target. Target variables defined by this
         # makefile apply to this new target. Initialize the target's variables.
         TGT := $$(strip $${TARGET_DIR}/$${TARGET})
+
+        # A "hook" to rewrite "libfoo.a" -> "libfoo.la" when using libtool
+        $$(eval $$(call ADD_LIBTOOL_SUFFIX))
+
         ALL_TGTS += $${TGT}
         $${TGT}_LDFLAGS := $${TGT_LDFLAGS}
         $${TGT}_LDLIBS := $${TGT_LDLIBS}
@@ -311,6 +315,9 @@ define INCLUDE_SUBMAKEFILE
     # If we're about to change targets, create the rules for the target
     ifneq "$${TGT}" "$$(call PEEK,$${TGT_STACK})"
         all: $${TGT}
+
+        # A "hook" to build the libtool target.
+        $$(eval $$(call ADD_LIBTOOL_TARGET))
 
         # Choose the correct linker.
         ifeq "$$(strip $$(filter $${CXX_SRC_EXTS},$${$${TGT}_SOURCES}))" ""
@@ -433,6 +440,7 @@ clean:
 
 top_makedir := $(dir $(lastword ${MAKEFILE_LIST}))
 
+-include ${top_makedir}/libtool.mk
 -include ${top_makedir}/install.mk
 
 # Include the main user-supplied submakefile. This also recursively includes
