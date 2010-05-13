@@ -147,7 +147,10 @@ endef
 .PHONY: install
 install:
 
-PROGRAM_INSTALL := ${INSTALL}
+# Wrapper around INSTALL
+ifeq "${PROGRAM_INSTALL}" ""
+    PROGRAM_INSTALL := ${INSTALL}
+endif
 
 # Be nice to the user.  If there is no INSTALL program, then print out
 # a helpful message.  Without this check, the "install" rules defined
