@@ -128,7 +128,7 @@ endif
 #
 define ADD_TARGET_RULE.exe
     # Create executable ${1}
-    ${1}: $${${1}_OBJS} $${${1}_PREREQS}
+    ${1}: $${${1}_OBJS} $${${1}_PREREQS} $${${1}_PRLIBS}
 	    @$(strip mkdir -p $(dir $$@))
 	    $${${1}_LINKER} -o $$@ $${RPATH_FLAGS} $${LDFLAGS} \
                 $${${1}_LDFLAGS} $${${1}_OBJS} $${${1}_PRLIBS} \
@@ -250,7 +250,8 @@ define INCLUDE_SUBMAKEFILE
         $${TGT}_POSTMAKE := $${TGT_POSTMAKE}
         $${TGT}_POSTCLEAN := $${TGT_POSTCLEAN}
         $${TGT}_POSTINSTALL := $${TGT_POSTINSTALL}
-        $${TGT}_PREREQS := $$(addprefix $${TARGET_DIR}/,$${TGT_PREREQS})
+        $${TGT}_PREREQS := $$(addprefix $${TARGET_DIR}/,$$(filter-out %.a %.so %.la,$${TGT_PREREQS}))
+        $${TGT}_PRLIBS := $$(addprefix $${TARGET_DIR}/,$$(filter %.a %.so %.la,$${TGT_PREREQS}))
         $${TGT}_DEPS :=
         $${TGT}_OBJS :=
         $${TGT}_SOURCES :=
