@@ -187,14 +187,14 @@ endef
 # COMPILE_C_CMDS - Commands for compiling C source code.
 define COMPILE_C_CMDS
 	@mkdir -p $(dir $@)
-	$(strip ${CC} -o $@ -c -MD ${CFLAGS} ${SRC_CFLAGS} ${INCDIRS} \
+	$(strip ${COMPILE.c} -o $@ -c -MD ${CFLAGS} ${SRC_CFLAGS} ${INCDIRS} \
 	    ${SRC_INCDIRS} ${SRC_DEFS} ${DEFS} $<)
 endef
 
 # COMPILE_CXX_CMDS - Commands for compiling C++ source code.
 define COMPILE_CXX_CMDS
 	@mkdir -p $(dir $@)
-	$(strip ${CXX} -o $@ -c -MD ${CXXFLAGS} ${SRC_CXXFLAGS} ${INCDIRS} \
+	$(strip ${COMPILE.cxx} -o $@ -c -MD ${CXXFLAGS} ${SRC_CXXFLAGS} ${INCDIRS} \
 	    ${SRC_INCDIRS} ${SRC_DEFS} ${DEFS} $<)
 endef
 
