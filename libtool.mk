@@ -51,7 +51,7 @@ clean: .libs_clean
 
 .PHONY: .libs_clean
 .libs_clean:
-	rm -rf .libs/
+	rm -rf ${BUILD_DIR}/.libs/
 
 # Re-define compilers and linkers
 #
