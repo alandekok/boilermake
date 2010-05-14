@@ -224,6 +224,7 @@ define INCLUDE_SUBMAKEFILE
     SRC_CXXFLAGS :=
     SRC_DEFS :=
     SRC_INCDIRS :=
+    MAN :=
 
     SUBMAKEFILES :=
 
@@ -264,6 +265,7 @@ define INCLUDE_SUBMAKEFILE
         $${TGT}_DEPS :=
         $${TGT}_OBJS :=
         $${TGT}_SOURCES :=
+        $${TGT}_MAN := $${MAN}
         $${TGT}_SUFFIX := $$(if $$(suffix $${TGT}),$$(suffix $${TGT}),.exe)
     else
         # The values defined by this makefile apply to the the "current" target
