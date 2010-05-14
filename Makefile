@@ -244,7 +244,10 @@ define INCLUDE_SUBMAKEFILE
     ifneq "$$(strip $${TARGET})" ""
         # This makefile defined a new target. Target variables defined by this
         # makefile apply to this new target. Initialize the target's variables.
-        TGT := $$(strip $${TARGET_DIR}/$${TARGET})
+
+        # libs go into ${BUILD_DIR}/lib
+        # everything else goes into ${BUILD_DIR}/bin
+        TGT := $$(strip $$(if $$(suffix $${TARGET}),$${BUILD_DIR}/lib,$${BUILD_DIR}/bin)/$${TARGET})
 
         # A "hook" to rewrite "libfoo.a" -> "libfoo.la" when using libtool
         $$(eval $$(call ADD_LIBTOOL_SUFFIX))
@@ -256,8 +259,8 @@ define INCLUDE_SUBMAKEFILE
         $${TGT}_POSTMAKE := $${TGT_POSTMAKE}
         $${TGT}_POSTCLEAN := $${TGT_POSTCLEAN}
         $${TGT}_POSTINSTALL := $${TGT_POSTINSTALL}
-        $${TGT}_PREREQS := $$(addprefix $${TARGET_DIR}/,$$(filter-out %.a %.so %.la,$${TGT_PREREQS}))
-        $${TGT}_PRLIBS := $$(addprefix $${TARGET_DIR}/,$$(filter %.a %.so %.la,$${TGT_PREREQS}))
+        $${TGT}_PREREQS := $$(addprefix $${BUILD_DIR}/bin/,$$(filter-out %.a %.so %.la,$${TGT_PREREQS}))
+        $${TGT}_PRLIBS := $$(addprefix $${BUILD_DIR}/lib/,$$(filter %.a %.so %.la,$${TGT_PREREQS}))
         $${TGT}_DEPS :=
         $${TGT}_OBJS :=
         $${TGT}_SOURCES :=
@@ -416,14 +419,12 @@ DIR_STACK :=
 INCDIRS :=
 TGT_STACK :=
 
-# Ensure that valid values are set for BUILD_DIR and TARGET_DIR.
+# Ensure that valid values are set for BUILD_DIR
 ifeq "$(strip ${BUILD_DIR})" ""
     BUILD_DIR := build
+else
+    BUILD_DIR := $(call CANONICAL_PATH,${BUILD_DIR})
 endif
-ifeq "$(strip ${TARGET_DIR})" ""
-    TARGET_DIR := .
-endif
-
 
 # Define compilers and linkers
 #

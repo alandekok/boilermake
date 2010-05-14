@@ -99,7 +99,7 @@ ifneq "${libdir}" ""
     #          from the build directory / source tree.
     # RELINK : flags use to build executables that are installed,
     #          with no dependency on the source. 
-    RPATH_FLAGS := -rpath $(call CANONICAL_PATH,${TARGET_DIR})/.libs -rdynamic
+    RPATH_FLAGS := -rpath $(abspath ${BUILD_DIR})/lib/.libs -rdynamic
     RELINK_FLAGS := -rpath ${libdir} -rdynamic
 else
     RPATH_FLAGS := -static
