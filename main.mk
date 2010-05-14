@@ -18,11 +18,10 @@ run-tests:
 	${APP} > found.txt
 	diff expected.txt found.txt
 	${MAKE} clean
-	rm -rf R/
-	${MAKE} -C test-app/ LIBTOOL=`pwd`/jlibtool DESTDIR=`pwd`/R bindir=/usr/local/bin libdir=/usr/local/lib INSTALL=`pwd`/install-sh all
+	${MAKE} -C test-app/ LIBTOOL=JLIBTOOL DESTDIR=`pwd`/R bindir=/usr/local/bin libdir=/usr/local/lib INSTALL=`pwd`/install-sh all
 	${APP} > found.txt
 	diff expected.txt found.txt
-	${MAKE} -C test-app/ LIBTOOL=`pwd`/jlibtool DESTDIR=`pwd`/R bindir=/usr/local/bin libdir=/usr/local/lib INSTALL=`pwd`/install-sh install
+	${MAKE} -C test-app/ LIBTOOL=JLIBTOOL DESTDIR=`pwd`/R bindir=/usr/local/bin libdir=/usr/local/lib INSTALL=`pwd`/install-sh install
 # don't do "find", as we have *.la files installed, rather than *.a
 	${APP} > found.txt
 	diff expected.txt found.txt

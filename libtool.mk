@@ -20,24 +20,28 @@ ifneq "${LIBTOOL}" ""
 #   than the GNU (slow) libtool shell script.  If so, add rules
 #   to build it.
 
-ifeq "$(abspath ${LIBTOOL})" "$(abspath ${top_makedir}/jlibtool)"
-    JLIBTOOL := $(abspath ${top_makedir}/jlibtool)
+ifeq "${LIBTOOL}" "JLIBTOOL"
+    JLIBTOOL := $(abspath ${BUILD_DIR}/make/jlibtool)
 
     # Add a rule to build jlibtool BEFORE any other targets.  This
     # means that we can use it to build the later targets.
-    all install: ${JLIBTOOL} ${top_makedir}/jlibtool
+    all install: ${JLIBTOOL}
 
     # Note that we need to use a compilation rule that does NOT
     # include referencing ${LIBTOOL}, as we don't have a jlibtool
     # binary!
-    jlibtool ${JLIBTOOL} ${top_makedir}/jlibtool: ${top_makedir}/jlibtool.c
-	${CC} $< -o ${top_makedir}/jlibtool
+    jlibtool ${JLIBTOOL}: ${top_makedir}/jlibtool.c
+	${CC} $< -o ${JLIBTOOL}
 
     clean: jlibtool_clean
 
     .PHONY: jlibtool_clean
     jlibtool_clean:
-	rm -f ${top_makedir}/jlibtool
+	rm -f ${JLIBTOOL}
+
+    # Tell GNU Make to use this value, rather than anything specified
+    # on the command line.
+    override LIBTOOL := ${JLIBTOOL}
 endif    # else we're not using jlibtool
 
 # When using libtool, it produces a '.libs' directory.  Ensure that it
@@ -131,7 +135,7 @@ endef
 #   USE WITH EVAL
 #
 define ADD_LIBTOOL_TARGET
-    ifneq "${JLIBTOOL}" ""
+    ifeq "${LIBTOOL}" "JLIBTOOL"
         $${$${TGT}_OBJS}: $${JLIBTOOL}
     endif
 endef
