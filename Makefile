@@ -324,6 +324,9 @@ define INCLUDE_SUBMAKEFILE
     ifneq "$${TGT}" "$$(call PEEK,$${TGT_STACK})"
         all: $${TGT}
 
+        .PHONY: $$(notdir $${TGT})
+        $$(notdir $${TGT}): $${TGT}
+
         # A "hook" to build the libtool target.
         $$(eval $$(call ADD_LIBTOOL_TARGET))
 
