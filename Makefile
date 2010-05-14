@@ -34,9 +34,9 @@
 #   USE WITH EVAL
 #
 define ADD_CLEAN_RULE
-    clean: clean_${1}
-    .PHONY: clean_${1}
-    clean_${1}:
+    clean: clean_$(notdir ${1})
+    .PHONY: clean_$(notdir ${1})
+    clean_$(notdir ${1}):
 	$$(strip rm -f ${1} ${${1}_NOLIBTOOL} ${${1}_OBJS} ${${1}_DEPS} $${${1}_OBJS:%.${OBJ_EXT}=%.[do]})
 	$${${1}_POSTCLEAN}
 endef
