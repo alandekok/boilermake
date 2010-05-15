@@ -42,6 +42,8 @@ endif
 #   USE WITH EVAL
 #
 define ADD_INSTALL_RULE.exe
+    ALL_INSTALL += $${${1}_INSTALLDIR}/$(notdir ${1})
+
     # Global install depends on ${1}
     install: $${${1}_INSTALLDIR}/$(notdir ${1})
 
@@ -59,6 +61,8 @@ endef
 #   USE WITH EVAL
 #
 define ADD_INSTALL_RULE.a
+    ALL_INSTALL += $${${1}_INSTALLDIR}/$(notdir ${1})
+
     # Global install depends on ${1}
     install: $${${1}_INSTALLDIR}/$(notdir ${1})
 
@@ -73,9 +77,14 @@ endef
 # ADD_INSTALL_RULE.la - Parameterized "function" that adds a new rule
 #   and phony target for installing a libtool library
 #
+#   FIXME: The libtool install *also* installs a bunch of other files.
+#          ensure that those are removed, too.
+#
 #   USE WITH EVAL
 #
 define ADD_INSTALL_RULE.la
+    ALL_INSTALL += $${${1}_INSTALLDIR}/$(notdir ${1})
+
     # Global install depends on ${1}
     install: $${${1}_INSTALLDIR}/$(notdir ${1})
 
@@ -94,6 +103,8 @@ endef
 #   USE WITH EVAL
 #
 define ADD_INSTALL_RULE.man
+    ALL_INSTALL += ${2}/$(notdir ${1})
+
     # Global install depends on ${1}
     install: ${2}/$(notdir ${1})
 
@@ -146,6 +157,17 @@ endef
 
 .PHONY: install
 install:
+
+ALL_INSTALL :=
+
+# Un-install any installed programs.  We DON'T want to depend on the
+# install target.  Doing so would cause "make uninstall" to build it,
+# install it, and then remove it.
+#
+# We also want to uninstall only when there are "install_foo" targets.
+.PHONY: uninstall
+uninstall:
+	[ "${ALL_INSTALL}" = "" ] || rm -f ${ALL_INSTALL}
 
 # Wrapper around INSTALL
 ifeq "${PROGRAM_INSTALL}" ""

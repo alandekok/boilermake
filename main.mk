@@ -17,6 +17,9 @@ run-tests:
 	diff expected-install.txt found-install.txt
 	${APP} > found.txt
 	diff expected.txt found.txt
+	${MAKE} -C test-app/ DESTDIR=`pwd`/R bindir=/usr/local/bin libdir=/usr/local/lib INSTALL=`pwd`/install-sh uninstall
+	find R/* -print > found-install.txt
+	diff empty-install.txt found-install.txt
 	${MAKE} clean
 	${MAKE} -C test-app/ LIBTOOL=JLIBTOOL DESTDIR=`pwd`/R bindir=/usr/local/bin libdir=/usr/local/lib INSTALL=`pwd`/install-sh all
 	${APP} > found.txt
