@@ -136,8 +136,12 @@ endef
 #   USE WITH EVAL
 #
 define ADD_LIBTOOL_TARGET
-    ifeq "${LIBTOOL}" "JLIBTOOL"
+    ifneq "${JLIBTOOL}" ""
         $${$${TGT}_OBJS}: $${JLIBTOOL}
+    endif
+
+    ifneq "$${$${TGT}_NOLIBTOOL}" ""
+        $$(notdir $${$${TGT}_NOLIBTOOL}): $${TGT}
     endif
 endef
 
