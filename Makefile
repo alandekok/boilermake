@@ -121,13 +121,26 @@ endif
 #
 #   USE WITH EVAL
 #
-define ADD_TARGET_DIR
-all: $${TARGET_DIR}/$$(notdir ${1})
+ifneq "${TARGET_DIR}" ""
+    define ADD_TARGET_DIR
+        all: $${TARGET_DIR}/$$(notdir ${1})
 
-$${TARGET_DIR}/$$(notdir ${1}): ${1}
-	[ -f $${TARGET_DIR}/$$(notdir ${1}) ] || ln -s ${1} $${TARGET_DIR}/$$(notdir ${1})
+        $${TARGET_DIR}/$$(notdir ${1}): ${1}
+	    [ -f $${TARGET_DIR}/$$(notdir ${1}) ] || ln -s ${1} $${TARGET_DIR}/$$(notdir ${1})
+    endef
+endif
+
+# ADD_TARGET_TO_ALL - Parameterized "function" that adds the target,
+#   and makes "all" depend on it.
+#
+#   USE WITH EVAL
+#
+define ADD_TARGET_TO_ALL
+    all: ${1}
+
+    .PHONY: $$(notdir ${1})
+    $$(notdir ${1}): ${1}
 endef
-
 
 # ADD_TARGET_RULE.* - Parameterized "functions" that adds a new target to the
 #   Makefile.  There should be one ADD_TARGET_RULE definition for each
@@ -335,17 +348,12 @@ define INCLUDE_SUBMAKEFILE
     TGT_STACK := $$(call POP,$${TGT_STACK})
     # If we're about to change targets, create the rules for the target
     ifneq "$${TGT}" "$$(call PEEK,$${TGT_STACK})"
-        all: $${TGT}
+        # add rules to build the target, and have "all" depend on it.
+        $$(eval $$(call ADD_TARGET_TO_ALL,$${TGT}))
 
-        .PHONY: $$(notdir $${TGT})
-        $$(notdir $${TGT}): $${TGT}
-
-        # If there's a TARGET_DIR variable, link the executables
-        # and binaries there.  This is not needed, but is available
-        # for compatibility with the original boilermake
-        ifneq "$${TARGET_DIR}" ""
-            $$(eval $$(call ADD_TARGET_DIR,$${TGT}))
-        endif
+        # A "hook" to add rules for ${TARGET_DIR}/foo, if TARGET_DIR
+        # is defined.  Otherwise, we leave the source directory untouched.
+        $$(eval $$(call ADD_TARGET_DIR,$${TGT}))
 
         # A "hook" to build the libtool target.
         $$(eval $$(call ADD_LIBTOOL_TARGET))
