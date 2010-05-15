@@ -116,6 +116,19 @@ ${FILTER_DEPENDS}
 endef
 endif
 
+# ADD_TARGET_DIR - Parameterized "function" that makes a link from
+#   TARGET_DIR to the executable or library in the BUILD_DIR directory.
+#
+#   USE WITH EVAL
+#
+define ADD_TARGET_DIR
+all: $${TARGET_DIR}/$$(notdir ${1})
+
+$${TARGET_DIR}/$$(notdir ${1}): ${1}
+	[ -f $${TARGET_DIR}/$$(notdir ${1}) ] || ln -s ${1} $${TARGET_DIR}/$$(notdir ${1})
+endef
+
+
 # ADD_TARGET_RULE.* - Parameterized "functions" that adds a new target to the
 #   Makefile.  There should be one ADD_TARGET_RULE definition for each
 #   type of target that is used in the build.  
@@ -326,6 +339,13 @@ define INCLUDE_SUBMAKEFILE
 
         .PHONY: $$(notdir $${TGT})
         $$(notdir $${TGT}): $${TGT}
+
+        # If there's a TARGET_DIR variable, link the executables
+        # and binaries there.  This is not needed, but is available
+        # for compatibility with the original boilermake
+        ifneq "$${TARGET_DIR}" ""
+            $$(eval $$(call ADD_TARGET_DIR,$${TGT}))
+        endif
 
         # A "hook" to build the libtool target.
         $$(eval $$(call ADD_LIBTOOL_TARGET))
