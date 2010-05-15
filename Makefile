@@ -127,6 +127,7 @@ ifneq "${TARGET_DIR}" ""
 
         $${TARGET_DIR}/$$(notdir ${1}): ${1}
 	    [ -f $${TARGET_DIR}/$$(notdir ${1}) ] || ln -s ${1} $${TARGET_DIR}/$$(notdir ${1})
+
     endef
 endif
 
@@ -138,8 +139,9 @@ endif
 define ADD_TARGET_TO_ALL
     all: ${1}
 
-    .PHONY: $$(notdir ${1})
-    $$(notdir ${1}): ${1}
+    .PHONY: $(notdir ${1})
+    $(notdir ${1}): ${1}
+
 endef
 
 # ADD_TARGET_RULE.* - Parameterized "functions" that adds a new target to the
