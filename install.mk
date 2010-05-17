@@ -207,6 +207,11 @@ endif
 ifeq "${mandir}" ""
     mandir = ${datadir}/man
 endif
+ifeq "${docdir}" ""
+    ifneq "${PROJECT_NAME}" ""
+        docdir = ${datadir}/doc/${PROJECT_NAME}
+    endif
+endif
 ifeq "${logdir}" ""
     logdir = ${localstatedir}/log/
 endif
