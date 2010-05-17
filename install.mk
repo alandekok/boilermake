@@ -28,6 +28,23 @@ ${1}
 endef
 endif
 
+# ADD_INSTALL_DIR - Parameterized "function" that adds a new target
+#   which installs a directory.
+#
+#   USE WITH EVAL
+#
+define ADD_INSTALL_DIR
+    ALL_INSTALLDIRS += ${1}
+
+    # Global "install directories" rule depends on this directory.
+    installdirs: ${1}
+
+    .PHONY: ${1}
+    ${1}:
+	$${PROGRAM_INSTALL} -d -m 755 ${1}
+endef
+
+
 # ADD_INSTALL_RULE.* - Parameterized "functions" that adds a new
 #   installation to the Makefile.  There should be one ADD_INSTALL_RULE
 #   definition for each type of target that is used in the build.
@@ -48,8 +65,7 @@ define ADD_INSTALL_RULE.exe
     install: $${${1}_INSTALLDIR}/$(notdir ${1})
 
     # Install executable ${1}
-    $${${1}_INSTALLDIR}/$(notdir ${1}): $$(call INSTALL_NAME,${1})
-	@mkdir -p $${${1}_INSTALLDIR}
+    $${${1}_INSTALLDIR}/$(notdir ${1}): $$(call INSTALL_NAME,${1}) $${${1}_INSTALLDIR}
 	$${PROGRAM_INSTALL} -c -m 755 $$(call INSTALL_NAME,${1}) $${${1}_INSTALLDIR}/
 	$${${1}_POSTINSTALL}
 
@@ -67,8 +83,7 @@ define ADD_INSTALL_RULE.a
     install: $${${1}_INSTALLDIR}/$(notdir ${1})
 
     # Install static library ${1}
-    $${${1}_INSTALLDIR}/$(notdir ${1}): ${1}
-	@mkdir -p $${${1}_INSTALLDIR}
+    $${${1}_INSTALLDIR}/$(notdir ${1}): ${1} $${${1}_INSTALLDIR}
 	$${PROGRAM_INSTALL} -c -m 755 ${1} $${${1}_INSTALLDIR}/
 	$${${1}_POSTINSTALL}
 
@@ -89,8 +104,7 @@ define ADD_INSTALL_RULE.la
     install: $${${1}_INSTALLDIR}/$(notdir ${1})
 
     # Install libtool library ${1}
-    $${${1}_INSTALLDIR}/$(notdir ${1}): $$(call INSTALL_NAME,${1})
-	@mkdir -p $${${1}_INSTALLDIR}
+    $${${1}_INSTALLDIR}/$(notdir ${1}): $$(call INSTALL_NAME,${1}) $${${1}_INSTALLDIR}
 	$${PROGRAM_INSTALL} -c -m 755 $$(call INSTALL_NAME,${1}) $${${1}_INSTALLDIR}/
 	$${${1}_POSTINSTALL}
 
@@ -109,8 +123,7 @@ define ADD_INSTALL_RULE.man
     install: ${2}/$(notdir ${1})
 
     # Install manual page ${1}
-    ${2}/$(notdir ${1}): ${1}
-	@mkdir -p ${2}/
+    ${2}/$(notdir ${1}): ${1} ${2}
 	$${PROGRAM_INSTALL} -c -m 644 ${1} ${2}/
 
 endef
@@ -138,6 +151,10 @@ define ADD_INSTALL_TARGET
     # add rules to install the target
     ifneq "$${${1}_INSTALLDIR}" ""
         $$(eval $$(call ADD_INSTALL_RULE$${${1}_SUFFIX},${1}))
+
+        ifneq "$$(filter-out $${ALL_INSTALLDIRS},$${${1}_INSTALLDIR})" ""
+            $$(eval $$(call ADD_INSTALL_DIR,$${${1}_INSTALLDIR}))
+        endif
     endif
 
     # add rules to install the MAN pages.
@@ -159,6 +176,7 @@ endef
 install:
 
 ALL_INSTALL :=
+ALL_INSTALLDIRS :=
 
 # Un-install any installed programs.  We DON'T want to depend on the
 # install target.  Doing so would cause "make uninstall" to build it,
@@ -172,7 +190,12 @@ uninstall:
 # Wrapper around INSTALL
 ifeq "${PROGRAM_INSTALL}" ""
     PROGRAM_INSTALL := ${INSTALL}
+
 endif
+
+# Make just the installation directories
+.PHONY: installdirs
+installdirs:
 
 # Be nice to the user.  If there is no INSTALL program, then print out
 # a helpful message.  Without this check, the "install" rules defined
