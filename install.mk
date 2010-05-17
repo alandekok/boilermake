@@ -178,6 +178,43 @@ install:
 ALL_INSTALL :=
 ALL_INSTALLDIRS :=
 
+# Define reasonable defaults for all of the installation directories.
+# The user can over-ride these, but these are the defaults.
+ifeq "${prefix}" ""
+    prefix = "/usr/local"
+endif
+ifeq "${exec_prefix}" ""
+    exec_prefix = ${prefix}
+endif
+ifeq "${bindir}" ""
+    bindir = ${exec_prefix}/bin
+endif
+ifeq "${sbindir}" ""
+    sbindir = ${exec_prefix}/sbin
+endif
+ifeq "${libdir}" ""
+    libdir = ${exec_prefix}/lib
+endif
+ifeq "${sysconfdir}" ""
+    sysconfdir = ${prefix}/etc
+endif
+ifeq "${localstatedir}" ""
+    localstatedir = ${prefix}/var
+endif
+ifeq "${datadir}" ""
+    datadir = ${prefix}/share
+endif
+ifeq "${mandir}" ""
+    mandir = ${datadir}/man
+endif
+ifeq "${logdir}" ""
+    logdir = ${localstatedir}/log/
+endif
+ifeq "${includedir}" ""
+    includedir = ${prefix}/include
+endif
+
+
 # Un-install any installed programs.  We DON'T want to depend on the
 # install target.  Doing so would cause "make uninstall" to build it,
 # install it, and then remove it.
