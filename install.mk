@@ -66,7 +66,7 @@ define ADD_INSTALL_RULE.exe
 
     # Install executable ${1}
     $${${1}_INSTALLDIR}/$(notdir ${1}): $$(call INSTALL_NAME,${1}) $${${1}_INSTALLDIR}
-	$${PROGRAM_INSTALL} -c -m 755 $$(call INSTALL_NAME,${1}) $${${1}_INSTALLDIR}/
+	$${PROGRAM_INSTALL} -c -m 755 $${BUILD_DIR}/bin/$$(call INSTALL_NAME,${1}) $${${1}_INSTALLDIR}/
 	$${${1}_POSTINSTALL}
 
 endef
@@ -84,7 +84,7 @@ define ADD_INSTALL_RULE.a
 
     # Install static library ${1}
     $${${1}_INSTALLDIR}/$(notdir ${1}): ${1} $${${1}_INSTALLDIR}
-	$${PROGRAM_INSTALL} -c -m 755 ${1} $${${1}_INSTALLDIR}/
+	$${PROGRAM_INSTALL} -c -m 755 $${BUILD_DIR}/lib/${1} $${${1}_INSTALLDIR}/
 	$${${1}_POSTINSTALL}
 
 endef
@@ -105,7 +105,7 @@ define ADD_INSTALL_RULE.la
 
     # Install libtool library ${1}
     $${${1}_INSTALLDIR}/$(notdir ${1}): $$(call INSTALL_NAME,${1}) $${${1}_INSTALLDIR}
-	$${PROGRAM_INSTALL} -c -m 755 $$(call INSTALL_NAME,${1}) $${${1}_INSTALLDIR}/
+	$${PROGRAM_INSTALL} -c -m 755 $${BUILD_DIR}/lib/$$(call INSTALL_NAME,${1}) $${${1}_INSTALLDIR}/
 	$${${1}_POSTINSTALL}
 
 endef
@@ -227,7 +227,7 @@ endif
 # We also want to uninstall only when there are "install_foo" targets.
 .PHONY: uninstall
 uninstall:
-	[ "${ALL_INSTALL}" = "" ] || rm -f ${ALL_INSTALL}
+	$(if ${ALL_INSTALL},rm -f ${ALL_INSTALL})
 
 # Wrapper around INSTALL
 ifeq "${PROGRAM_INSTALL}" ""

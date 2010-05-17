@@ -87,10 +87,14 @@ endef
 #   USE WITH EVAL
 #
 define ADD_TARGET_RULE.la
+    # So "make ${1}" works
+    .PHONY: ${1}
+    ${1}: $${${1}_BUILD}/${1}
+
     # Create libtool library ${1}
-    ${1}: $${${1}_OBJS} $${${1}_PREREQS}
-	    @$(strip mkdir -p $(dir ${1}))
-	    $${${1}_LINKER} -o $$@ $${RPATH_FLAGS} $${LDFLAGS} \
+    $${${1}_BUILD}/${1}: $${${1}_OBJS} $${${1}_PREREQS}
+	    @$(strip mkdir -p $(dir $${${1}_BUILD}/${1}))
+	    $${${1}_LINKER} -o $${${1}_BUILD}/${1} $${RPATH_FLAGS} $${LDFLAGS} \
                 $${${1}_LDFLAGS} $${${1}_OBJS} $${LDLIBS} $${${1}_LDLIBS}
 	    $${${1}_POSTMAKE}
 

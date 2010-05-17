@@ -139,9 +139,6 @@ endif
 define ADD_TARGET_TO_ALL
     all: ${1}
 
-    .PHONY: $(notdir ${1})
-    $(notdir ${1}): ${1}
-
 endef
 
 # ADD_TARGET_RULE.* - Parameterized "functions" that adds a new target to the
@@ -157,10 +154,14 @@ endef
 #   USE WITH EVAL
 #
 define ADD_TARGET_RULE.exe
+    # So "make ${1}" works
+    .PHONY: ${1}
+    ${1}: $${${1}_BUILD}/${1}
+
     # Create executable ${1}
-    ${1}: $${${1}_OBJS} $${${1}_PREREQS} $${${1}_PRLIBS}
-	    @$(strip mkdir -p $(dir ${1}))
-	    $${${1}_LINKER} -o $$@ $${RPATH_FLAGS} $${LDFLAGS} \
+    $${${1}_BUILD}/${1}: $${${1}_OBJS} $${${1}_PRBIN} $${${1}_PRLIBS}
+	    @$(strip mkdir -p $(dir $${${1}_BUILD}/${1}))
+	    $${${1}_LINKER} -o $${${1}_BUILD}/${1} $${RPATH_FLAGS} $${LDFLAGS} \
                 $${${1}_LDFLAGS} $${${1}_OBJS} $${${1}_PRLIBS} \
                 $${LDLIBS} $${${1}_LDLIBS}
 	    $${${1}_POSTMAKE}
@@ -172,10 +173,14 @@ endef
 #   USE WITH EVAL
 #
 define ADD_TARGET_RULE.a
+    # So "make ${1}" works
+    .PHONY: ${1}
+    ${1}: $${${1}_BUILD}/${1}
+
     # Create static library ${1}
-    ${1}: $${${1}_OBJS} $${${1}_PREREQS}
-	    @$(strip mkdir -p $(dir ${1}))
-	    $${AR} $${ARFLAGS} ${1} $${${1}_OBJS}
+    $${${1}_BUILD}/${1}: $${${1}_OBJS} $${${1}_PREREQS}
+	    @$(strip mkdir -p $(dir $${${1}_BUILD}/${1}))
+	    $${AR} $${ARFLAGS} $${${1}_BUILD}/${1} $${${1}_OBJS}
 	    $${${1}_POSTMAKE}
 
 endef
@@ -276,7 +281,8 @@ define INCLUDE_SUBMAKEFILE
 
         # libs go into ${BUILD_DIR}/lib
         # everything else goes into ${BUILD_DIR}/bin
-        TGT := $$(strip $$(if $$(suffix $${TARGET}),$${BUILD_DIR}/lib,$${BUILD_DIR}/bin)/$${TARGET})
+#        TGT := $$(strip $$(if $$(suffix $${TARGET}),$${BUILD_DIR}/lib,$${BUILD_DIR}/bin)/$${TARGET})
+        TGT := $${TARGET}
 
         # A "hook" to rewrite "libfoo.a" -> "libfoo.la" when using libtool
         $$(eval $$(call ADD_LIBTOOL_SUFFIX))
@@ -288,13 +294,15 @@ define INCLUDE_SUBMAKEFILE
         $${TGT}_POSTMAKE := $${TGT_POSTMAKE}
         $${TGT}_POSTCLEAN := $${TGT_POSTCLEAN}
         $${TGT}_POSTINSTALL := $${TGT_POSTINSTALL}
-        $${TGT}_PREREQS := $$(addprefix $${BUILD_DIR}/bin/,$$(filter-out %.a %.so %.la,$${TGT_PREREQS}))
+        $${TGT}_PREREQS := $${TGT_PREREQS}
+        $${TGT}_PRBIN := $$(addprefix $${BUILD_DIR}/bin/,$$(filter-out %.a %.so %.la,$${TGT_PREREQS}))
         $${TGT}_PRLIBS := $$(addprefix $${BUILD_DIR}/lib/,$$(filter %.a %.so %.la,$${TGT_PREREQS}))
         $${TGT}_DEPS :=
         $${TGT}_OBJS :=
         $${TGT}_SOURCES :=
         $${TGT}_MAN := $${MAN}
         $${TGT}_SUFFIX := $$(if $$(suffix $${TGT}),$$(suffix $${TGT}),.exe)
+        $${TGT}_BUILD := $$(if $$(suffix $${TGT}),$${BUILD_DIR}/lib,$${BUILD_DIR}/bin)
     else
         # The values defined by this makefile apply to the the "current" target
         # as determined by which target is at the top of the stack.
