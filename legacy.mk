@@ -16,17 +16,17 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 # ADD_LEGACY_RULE - Parametric "function" that creates legacy Makefiles
-#   in the ${BUILD_DIR}/make/ directory.
+#   in the ${MAKE_DIR}/ directory.
 #
 define ADD_LEGACY_RULE
     # The makefile is named for the source file, in the "make" directory,
     # with a ".mk" extension.
-    ${1}_LEGACY := $$(patsubst $${BUILD_DIR}/%,$${BUILD_DIR}/make/%,$${${1}_BUILD})/${1}.mk
+    ${1}_LEGACY := $$(patsubst $${BUILD_DIR}/%,$${MAKE_DIR}/%,$${${1}_BUILD})/${1}.mk
 
     ALL_LEGACYMK += $${${1}_LEGACY}
 
     # gnu.mak needs to have a line saying "include foo.mk"
-    $${BUILD_DIR}/make/gnu.mk: $${${1}_LEGACY}
+    $${MAKE_DIR}/gnu.mk: $${${1}_LEGACY}
 
     # The legacy makefile depends on the build Makefiles.  If they change,
     # we presume that the definitions or list of sources has changed,
@@ -80,6 +80,7 @@ define ADD_LEGACY_RULE
 endef
 
 ALL_LEGACYMK :=
+MAKE_DIR := ${BUILD_DIR}/make
 
 # LEGACY_FILTER_DEPENDS - Parameterized "function" that filters the
 #  dependencies.  It is a copy of FILTER_DEPENDS, with $$* changed to
@@ -87,7 +88,7 @@ ALL_LEGACYMK :=
 #  base filename without suffix *or* directory path.  e.g. bar/foo.c -> foo
 #
 define LEGACY_FILTER_DEPENDS
-	@mkdir -p $(dir $${BUILD_DIR}/make/src/${1})
+	@mkdir -p $(dir $${MAKE_DIR}/src/${1})
 	@sed  -e 's/#.*//' \
 	  -e 's, /[^: ]*,,g' \
 	  -e 's,^ *[^:]* *: *$$$$,,' \
@@ -97,7 +98,7 @@ define LEGACY_FILTER_DEPENDS
 	  -e 's,^$${BUILD_DIR},$$$${BUILD_DIR},' \
 	  -e '/^$$$$/ d' \
 	  < $${BUILD_DIR}/objs/$(basename ${1}).d | sed -e '$$$$!N; /^\(.*\)\n\1$$$$/!P; D' \
-	  >  $${BUILD_DIR}/make/src/$(basename ${1}).mk
+	  >  $${MAKE_DIR}/src/$(basename ${1}).mk
 	@sed -e 's/#.*//' \
 	  -e 's, /[^: ]*,,g' \
 	  -e 's,^ *[^:]* *: *$$$$,,' \
@@ -107,7 +108,7 @@ define LEGACY_FILTER_DEPENDS
 	  -e '/^$$$$/ d' \
 	  -e 's/$$$$/ :/' \
 	  < $${BUILD_DIR}/objs/$(basename ${1}).d | sed -e '$$$$!N; /^\(.*\)\n\1$$$$/!P; D' \
-	 >> $${BUILD_DIR}/make/src/$(basename ${1}).mk
+	 >> $${MAKE_DIR}/src/$(basename ${1}).mk
 	 @rm -f $${BUILD_DIR}/objs/$(basename ${1}).d
 endef
 
@@ -147,8 +148,8 @@ $(call LEGACY_FILTER_DEPENDS,${1})
 endef
 
 # Create a file containing the variable definitions
-.PHONY: ${BUILD_DIR}/make/defs.mk
-${BUILD_DIR}/make/defs.mk:
+.PHONY: ${MAKE_DIR}/defs.mk
+${MAKE_DIR}/defs.mk:
 	@mkdir -p $(dir $$@)
 	@${MAKE} -s LEGACY=yes defs.mk | sed 's/^ *//' > $@
 
@@ -174,11 +175,12 @@ endif
 
 # The GNU compatible makefile depends on the Makefiles for all of
 # defined targets.
-${BUILD_DIR}/make/gnu.mk: ${BUILD_DIR}/make/defs.mk
-	@echo "include $<" > $@
+${MAKE_DIR}/gnu.mk: ${MAKE_DIR}/defs.mk
+	@echo "MAKE_DIR := ${BUILD_DIR}/make" > $@
+	@echo "include \$${MAKE_DIR}/defs.mk" >> $@
 	@echo ".PHONY: all clean" >> $@
 	@echo "all clean:" >> $@
 	@echo "" >> $@
 	@for x in ${ALL_LEGACYMK}; do \
-		echo "include $$x" >> $@; \
+		echo "include $$x" | sed -e 's, ${BUILD_DIR}/make, $${MAKE_DIR},g' >> $@; \
 	done
