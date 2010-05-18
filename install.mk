@@ -181,7 +181,7 @@ ALL_INSTALLDIRS :=
 # Define reasonable defaults for all of the installation directories.
 # The user can over-ride these, but these are the defaults.
 ifeq "${prefix}" ""
-    prefix = "/usr/local"
+    prefix = /usr/local
 endif
 ifeq "${exec_prefix}" ""
     exec_prefix = ${prefix}
