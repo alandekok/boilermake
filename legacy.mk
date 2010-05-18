@@ -87,7 +87,7 @@ ALL_LEGACYMK :=
 #  base filename without suffix *or* directory path.  e.g. bar/foo.c -> foo
 #
 define LEGACY_FILTER_DEPENDS
-	@mkdir -p $(dir $${BUILD_DIR}/make/${1})
+	@mkdir -p $(dir $${BUILD_DIR}/make/src/${1})
 	@sed  -e 's/#.*//' \
 	  -e 's, /[^: ]*,,g' \
 	  -e 's,^ *[^:]* *: *$$$$,,' \
@@ -95,7 +95,7 @@ define LEGACY_FILTER_DEPENDS
 	  -e '/^ *\\$$$$/ d' \
 	  -e '/^$$$$/ d' \
 	  < $${BUILD_DIR}/objs/$(basename ${1}).d | sed -e '$$$$!N; /^\(.*\)\n\1$$$$/!P; D' \
-	  >  $${BUILD_DIR}/make/$(basename ${1}).P
+	  >  $${BUILD_DIR}/make/src/$(basename ${1}).mk
 	@sed -e 's/#.*//' \
 	  -e 's, /[^: ]*,,g' \
 	  -e 's,^ *[^:]* *: *$$$$,,' \
@@ -105,7 +105,7 @@ define LEGACY_FILTER_DEPENDS
 	  -e '/^$$$$/ d' \
 	  -e 's/$$$$/ :/' \
 	  < $${BUILD_DIR}/objs/$(basename ${1}).d | sed -e '$$$$!N; /^\(.*\)\n\1$$$$/!P; D' \
-	 >> $${BUILD_DIR}/make/$(basename ${1}).P
+	 >> $${BUILD_DIR}/make/src/$(basename ${1}).mk
 	 rm -f $${BUILD_DIR}/objs/$(basename ${1}).d
 endef
 

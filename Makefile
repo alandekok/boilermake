@@ -41,7 +41,7 @@ define ADD_CLEAN_RULE
 	$${${1}_POSTCLEAN}
 endef
 
-# FILTER_DEPENDS: function to turn a *.d file into a *.P file.
+# FILTER_DEPENDS: function to turn a *.d file into a *.mk file.
 #   We start off with the dependencies as created by the compiler,
 #   CPP, or makedepend.  We then ensure that there is an empty dependency
 #   for each header file.  The blank target ensures that the build
@@ -70,7 +70,7 @@ endef
 #	remove sequential duplicate lines
 #
 define FILTER_DEPENDS
-	@mkdir -p $$(dir $${BUILD_DIR}/make/$$*)
+	@mkdir -p $$(dir $${BUILD_DIR}/make/src/$$*)
 	@mkdir -p $$(dir $${BUILD_DIR}/objs/$$*)
 	@sed  -e 's/#.*//' \
 	  -e 's, /[^: ]*,,g' \
@@ -79,7 +79,7 @@ define FILTER_DEPENDS
 	  -e '/^ *\\$$$$/ d' \
 	  -e '/^$$$$/ d' \
 	  < $${BUILD_DIR}/objs/$$*.d | sed -e '$$$$!N; /^\(.*\)\n\1$$$$/!P; D' \
-	  >  $${BUILD_DIR}/make/$$*.P
+	  >  $${BUILD_DIR}/make/src/$$*.mk
 	@sed -e 's/#.*//' \
 	  -e 's, /[^: ]*,,g' \
 	  -e 's,^ *[^:]* *: *$$$$,,' \
@@ -89,7 +89,7 @@ define FILTER_DEPENDS
 	  -e '/^$$$$/ d' \
 	  -e 's/$$$$/ :/' \
 	  < $${BUILD_DIR}/objs/$$*.d | sed -e '$$$$!N; /^\(.*\)\n\1$$$$/!P; D' \
-	 >> $${BUILD_DIR}/make/$$*.P
+	 >> $${BUILD_DIR}/make/src/$$*.mk
 	 rm -f $${BUILD_DIR}/objs/$$*.d
 endef
 
@@ -339,8 +339,8 @@ define INCLUDE_SUBMAKEFILE
         # target-specific variables for the objects based on any source
         # variables that were defined.
         $${TGT}_OBJS += $${OBJS}
-        $${TGT}_DEPS += $$(addprefix $${BUILD_DIR}/make/,\
-                   $$(addsuffix .P,$$(basename $${SOURCES})))
+        $${TGT}_DEPS += $$(addprefix $${BUILD_DIR}/make/src/,\
+                   $$(addsuffix .mk,$$(basename $${SOURCES})))
         $${TGT}_CFLAGS := $${SRC_CFLAGS}
         $${TGT}_CXXFLAGS := $${SRC_CXXFLAGS}
         $${TGT}_DEFS := $$(addprefix -D,$${SRC_DEFS})
@@ -515,6 +515,10 @@ $(foreach EXT,${C_SRC_EXTS},\
 $(foreach EXT,${CXX_SRC_EXTS},\
   $(eval $(call ADD_OBJECT_RULE,${EXT},$${COMPILE_CXX_CMDS})))
 
-# Include generated rules that define additional (header) dependencies.
-$(foreach TGT,${ALL_TGTS},\
-  $(eval -include ${${TGT}_DEPS}))
+# Don't include the target dependencies if we're doing a "make clean"
+# Future: have a list of targets that don't require dependency generation,
+#  and see if MAKECMDGOALS is one of them.
+ifneq "$(MAKECMDGOALS)" "clean"
+    $(foreach TGT,${ALL_TGTS},\
+      $(eval -include ${${TGT}_DEPS}))
+endif
