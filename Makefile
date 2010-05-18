@@ -58,6 +58,7 @@ endef
 #	COMMON
 #	delete empty continuation lines
 #	delete blank lines
+#	replace "build/" with "${BUILD_DIR}/"
 #	remove sequential duplicate lines
 #	
 #  2) Create empty dependencies from the files
@@ -77,6 +78,7 @@ define FILTER_DEPENDS
 	  -e 's,^ *[^:]* *: *$$$$,,' \
 	  -e '/: </ d' \
 	  -e '/^ *\\$$$$/ d' \
+	  -e 's,^$${BUILD_DIR},$$$${BUILD_DIR},' \
 	  -e '/^$$$$/ d' \
 	  < $${BUILD_DIR}/objs/$$*.d | sed -e '$$$$!N; /^\(.*\)\n\1$$$$/!P; D' \
 	  >  $${BUILD_DIR}/make/src/$$*.mk

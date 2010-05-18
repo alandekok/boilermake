@@ -93,6 +93,7 @@ define LEGACY_FILTER_DEPENDS
 	  -e 's,^ *[^:]* *: *$$$$,,' \
 	  -e '/: </ d' \
 	  -e '/^ *\\$$$$/ d' \
+	  -e 's,^$${BUILD_DIR},$$$${BUILD_DIR},' \
 	  -e '/^$$$$/ d' \
 	  < $${BUILD_DIR}/objs/$(basename ${1}).d | sed -e '$$$$!N; /^\(.*\)\n\1$$$$/!P; D' \
 	  >  $${BUILD_DIR}/make/src/$(basename ${1}).mk
