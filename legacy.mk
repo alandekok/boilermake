@@ -107,7 +107,7 @@ define LEGACY_FILTER_DEPENDS
 	  -e 's/$$$$/ :/' \
 	  < $${BUILD_DIR}/objs/$(basename ${1}).d | sed -e '$$$$!N; /^\(.*\)\n\1$$$$/!P; D' \
 	 >> $${BUILD_DIR}/make/src/$(basename ${1}).mk
-	 rm -f $${BUILD_DIR}/objs/$(basename ${1}).d
+	 @rm -f $${BUILD_DIR}/objs/$(basename ${1}).d
 endef
 
 # ADD_COMPILE_RULE.c - Parameterized "function" that adds a new rule
@@ -121,6 +121,9 @@ define ADD_COMPILE_RULE.c
 	@$(strip mkdir -p $(dir $${BUILD_DIR}/objs/$(basename ${1}).$${OBJ_EXT}))
 	$${COMPILE.c} -o $${BUILD_DIR}/objs/$(basename ${1}).$${OBJ_EXT} -c $${CFLAGS} $${${2}_CFLAGS} \
             $${${2}_INCDIRS} $${${2}_DEFS} ${1}
+	[ "$${CPP_MAKEDEPEND}" != "yes" ] || $${CPP} $${CPPFLAGS} $${${2}_INCDIRS} $${${2}_DEFS} $$< | sed \
+	  -n 's,^\# *[0-9][0-9]* *"\([^"]*\)".*,$$@: \1,p' > $${BUILD_DIR}/objs/$(basename ${1}).d
+$(call LEGACY_FILTER_DEPENDS,${1})
 
 endef
 
@@ -136,7 +139,7 @@ define ADD_COMPILE_RULE.cxx
 	@$(strip mkdir -p $(dir $${BUILD_DIR}/objs/$(basename ${1}).$${OBJ_EXT}))
 	$${COMPILE.cxx} -o $${BUILD_DIR}/objs/$(basename ${1}).$${OBJ_EXT} -c $${CXXFLAGS} $${${2}_CXXFLAGS} \
             $${${2}_INCDIRS} $${${2}_DEFS} ${1}
-	[ "$${CPP_MAKEDEPEND}" != "yes" ] || $${CPP} $${CPPFLAGS} $${${1}_INCDIRS} $${${1}_DEFS} $$< | sed \
+	[ "$${CPP_MAKEDEPEND}" != "yes" ] || $${CPP} $${CPPFLAGS} $${${2}_INCDIRS} $${${2}_DEFS} $$< | sed \
 	  -n 's,^\# *[0-9][0-9]* *"\([^"]*\)".*,$$@: \1,p' > $${BUILD_DIR}/objs/$(basename ${1}).d
 $(call LEGACY_FILTER_DEPENDS,${1})
 
