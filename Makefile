@@ -37,7 +37,7 @@ define ADD_CLEAN_RULE
     clean: clean_$(notdir ${1})
     .PHONY: clean_$(notdir ${1})
     clean_$(notdir ${1}):
-	$$(strip rm -f ${1} ${${1}_NOLIBTOOL} ${${1}_OBJS} ${${1}_DEPS} $${${1}_OBJS:%.${OBJ_EXT}=%.[do]}) $$(if $${TARGET_DIR},$${TARGET_DIR}/$$(notdir ${1}))
+	$$(strip rm -f ${1} ${${1}_NOLIBTOOL} $${${1}_OBJS} $${${1}_DEPS} $${${1}_OBJS:%.${OBJ_EXT}=%.[do]}) $(if ${TARGET_DIR},$${TARGET_DIR}/$(notdir ${1}))
 	$${${1}_POSTCLEAN}
 endef
 
