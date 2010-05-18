@@ -303,6 +303,7 @@ define INCLUDE_SUBMAKEFILE
         $${TGT}_MAN := $${MAN}
         $${TGT}_SUFFIX := $$(if $$(suffix $${TGT}),$$(suffix $${TGT}),.exe)
         $${TGT}_BUILD := $$(if $$(suffix $${TGT}),$${BUILD_DIR}/lib,$${BUILD_DIR}/bin)
+        $${TGT}_MAKEFILES += ${1}
     else
         # The values defined by this makefile apply to the the "current" target
         # as determined by which target is at the top of the stack.
@@ -340,6 +341,10 @@ define INCLUDE_SUBMAKEFILE
         $${TGT}_OBJS += $${OBJS}
         $${TGT}_DEPS += $$(addprefix $${BUILD_DIR}/make/,\
                    $$(addsuffix .P,$$(basename $${SOURCES})))
+        $${TGT}_CFLAGS := $${SRC_CFLAGS}
+        $${TGT}_CXXFLAGS := $${SRC_CXXFLAGS}
+        $${TGT}_DEFS := $$(addprefix -D,$${SRC_DEFS})
+        $${TGT}_INCDIRS := $$(addprefix -I,$${SRC_INCDIRS})
         $${OBJS}: SRC_CFLAGS := $${SRC_CFLAGS}
         $${OBJS}: SRC_CXXFLAGS := $${SRC_CXXFLAGS}
         $${OBJS}: SRC_DEFS := $$(addprefix -D,$${SRC_DEFS})
@@ -381,6 +386,9 @@ define INCLUDE_SUBMAKEFILE
 
         # add rules to build the target
         $$(eval $$(call ADD_TARGET_RULE$${$${TGT}_SUFFIX},$${TGT}))
+
+        # "hook" for legacy Makefiles
+        $$(eval $$(call ADD_LEGACY_RULE,$${TGT}))
 
         # generate the clean rule for this target.
         $$(eval $$(call ADD_CLEAN_RULE,$${TGT}))
@@ -489,6 +497,7 @@ top_makedir := $(dir $(lastword ${MAKEFILE_LIST}))
 
 -include ${top_makedir}/libtool.mk
 -include ${top_makedir}/install.mk
+-include ${top_makedir}/legacy.mk
 
 # Include the main user-supplied submakefile. This also recursively includes
 # all other user-supplied submakefiles.
