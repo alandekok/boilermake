@@ -159,7 +159,7 @@ defs.mk:
             $(info # Variable definitions)
             $(foreach x, CFLAGS CXXFLAGS DEFS INCDIRS LDFLAGS LDLIBS  \
                           MAN BUILD_DIR TARGET_DIR OBJ_EXT \
-                          COMPILE.c COMPILE.cxx LIBTOOL \
+                          COMPILE.c COMPILE.cxx CPP LIBTOOL \
                           prefix exec_prefix bindir sbindir libdir sysconfdir \
                           localstatedir datadir mandir docdir logdir \
                           includedir,\

@@ -483,6 +483,7 @@ endif
 #
 COMPILE.c = ${CC}
 COMPILE.cxx = ${CXX}
+CPP = cpp
 LINK.c = ${CC}
 LINK.cxx = ${CXX}
 
