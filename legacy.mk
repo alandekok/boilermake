@@ -92,6 +92,7 @@ define LEGACY_FILTER_DEPENDS
 	  -e 's, /[^: ]*,,g' \
 	  -e 's,^ *[^:]* *: *$$$$,,' \
 	  -e '/: </ d' \
+	  -e 's/\.o: /.$$$${OBJ_EXT}: /' \
 	  -e '/^ *\\$$$$/ d' \
 	  -e 's,^$${BUILD_DIR},$$$${BUILD_DIR},' \
 	  -e '/^$$$$/ d' \

@@ -56,6 +56,7 @@ endef
 #  1) Filter the .d file to remove unnecessary cruft
 #
 #	COMMON
+#	Replace ".o" with "${OBJ_EXT}"
 #	delete empty continuation lines
 #	delete blank lines
 #	replace "build/" with "${BUILD_DIR}/"
@@ -77,6 +78,7 @@ define FILTER_DEPENDS
 	  -e 's, /[^: ]*,,g' \
 	  -e 's,^ *[^:]* *: *$$$$,,' \
 	  -e '/: </ d' \
+	  -e 's/\.o: /.$$$${OBJ_EXT}: /' \
 	  -e '/^ *\\$$$$/ d' \
 	  -e 's,^$${BUILD_DIR},$$$${BUILD_DIR},' \
 	  -e '/^$$$$/ d' \
