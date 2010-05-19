@@ -345,10 +345,10 @@ define INCLUDE_SUBMAKEFILE
         $${TGT}_OBJS += $${OBJS}
         $${TGT}_DEPS += $$(addprefix $${BUILD_DIR}/make/src/,\
                    $$(addsuffix .mk,$$(basename $${SOURCES})))
-        $${TGT}_CFLAGS := $${SRC_CFLAGS}
-        $${TGT}_CXXFLAGS := $${SRC_CXXFLAGS}
-        $${TGT}_DEFS := $$(addprefix -D,$${SRC_DEFS})
-        $${TGT}_INCDIRS := $$(addprefix -I,$${SRC_INCDIRS})
+
+        # A "hook" to define variables needed by the "legacy" makefiles.
+        $$(eval $$(call ADD_LEGACY_VARIABLES,$$(dir ${1}),$${TGT}))
+
         $${OBJS}: SRC_CFLAGS := $${SRC_CFLAGS}
         $${OBJS}: SRC_CXXFLAGS := $${SRC_CXXFLAGS}
         $${OBJS}: SRC_DEFS := $$(addprefix -D,$${SRC_DEFS})

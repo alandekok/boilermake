@@ -15,8 +15,35 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+# ADD_LEGACY_VARIABLES - Parametric "function" that defines target
+#   and directory specific variables.  GNU Make supports per-object
+#   variables.  Other Make implementations do not.  So we cater to
+#   them for legacy Makefiles.
+#
+#  USE WITH EVAL
+#
+define ADD_LEGACY_VARIABLES
+    # These macros are specific to each target *and* the subdirectory.
+    # These rules are for the legacy.mk generation.
+    ${2}_MAKEDIRS := $$(sort $${${2}_MAKEDIRS} ${1})
+    ifeq "$$(words $${${2}_MAKEDIRS})" "1"
+        ${2}_CFLAGS := $${SRC_CFLAGS}
+        ${2}_CXXFLAGS := $${SRC_CXXFLAGS}
+        ${2}_DEFS := $$(addprefix -D,$${SRC_DEFS})
+        ${2}_INCDIRS := $$(addprefix -I,$${SRC_INCDIRS})
+    else
+        ${2}_${1}_used := yes
+        ${2}_${1}_CFLAGS := $${SRC_CFLAGS}
+        ${2}_${1}_CXXFLAGS := $${SRC_CXXFLAGS}
+        ${2}_${1}_DEFS := $$(addprefix -D,$${SRC_DEFS})
+        ${2}_${1}_INCDIRS := $$(addprefix -I,$${SRC_INCDIRS})
+    endif
+endef
+
 # ADD_LEGACY_RULE - Parametric "function" that creates legacy Makefiles
 #   in the ${MAKE_DIR}/ directory.
+#
+#  USE WITH EVAL
 #
 define ADD_LEGACY_RULE
     # The makefile is named for the source file, in the "make" directory,
@@ -51,6 +78,12 @@ define ADD_LEGACY_RULE
                           RELINK PRLIBS PRBIN BUILD,\
                 $$(info ${1}_$${x} := $${${1}_$${x}}))
 
+            ifneq "$$(words $${$${1}_MAKEDIRS})" "1"
+                $$(foreach d,$$(wordlist 2,$$(words $${${1}_MAKEDIRS}),$${${1}_MAKEDIRS}), \
+                    $$(foreach x, CFLAGS CXXFLAGS DEFS INCDIRS,\
+                $$(info ${1}_$${d}_$${x} := $${${1}_$${d}_$${x}})))
+            endif
+
             $$(info )
             $$(info $$(call ADD_TARGET_TO_ALL,${1}))
             $$(info $$(call ADD_TARGET_RULE$${${1}_SUFFIX},${1}))
@@ -71,8 +104,11 @@ define ADD_LEGACY_RULE
 
             $$(info )
             $$(info # Rules for C++ files)
+
+            # The magic "if" command here is for determining if we use
+            # target_FOO, or target_dir_FOO in the compile rule.
             $$(foreach x, $$(filter $${CXX_SRC_EXTS},$${${1}_SOURCES}),\
-                $$(info $$(call ADD_COMPILE_RULE.cxx,$${x},${1})))
+                $$(info $$(call ADD_COMPILE_RULE.cxx,$${x},$$(if $${${1}_$$(dir $${x})_used},${1}_$$(dir $${x}),${1}))))
 
         endif
     endif
@@ -88,34 +124,16 @@ MAKE_DIR := ${BUILD_DIR}/make
 #  base filename without suffix *or* directory path.  e.g. bar/foo.c -> foo
 #
 define LEGACY_FILTER_DEPENDS
-	@mkdir -p $(dir $${MAKE_DIR}/src/${1})
-	@sed  -e 's/#.*//' \
-	  -e 's, /[^: ]*,,g' \
-	  -e 's,^ *[^:]* *: *$$$$,,' \
-	  -e '/: </ d' \
-	  -e 's/\.o: /.$$$${OBJ_EXT}: /' \
-	  -e '/^ *\\$$$$/ d' \
-	  -e 's,^$${BUILD_DIR},$$$${BUILD_DIR},' \
-	  -e '/^$$$$/ d' \
-	  < $${BUILD_DIR}/objs/$(basename ${1}).d | sed -e '$$$$!N; /^\(.*\)\n\1$$$$/!P; D' \
-	  >  $${MAKE_DIR}/src/$(basename ${1}).mk
-	@sed -e 's/#.*//' \
-	  -e 's, /[^: ]*,,g' \
-	  -e 's,^ *[^:]* *: *$$$$,,' \
-	  -e '/: </ d' \
-	  -e 's/^[^:]*: *//' \
-	  -e 's/ *\\$$$$//' \
-	  -e '/^$$$$/ d' \
-	  -e 's/$$$$/ :/' \
-	  < $${BUILD_DIR}/objs/$(basename ${1}).d | sed -e '$$$$!N; /^\(.*\)\n\1$$$$/!P; D' \
-	 >> $${MAKE_DIR}/src/$(basename ${1}).mk
-	 @rm -f $${BUILD_DIR}/objs/$(basename ${1}).d
+	@$${top_makedir}/depend2mk $${BUILD_DIR} $(dir $${MAKE_DIR}/src/${1}) \
+		$${BUILD_DIR}/objs/$(basename ${1}).d \
+		$${MAKE_DIR}/src/$(basename ${1}).mk
 endef
 
 # ADD_COMPILE_RULE.c - Parameterized "function" that adds a new rule
 #   which says how to compile a .c file into a .o file.  This is a copy
 #   of COMPILE_C_CMDS, with edits.  The GNU Make per-target variables
 #   have been changed to target-specific global variables.
+#
 #   USE WITH EVAL
 #
 define ADD_COMPILE_RULE.c
@@ -133,7 +151,7 @@ endef
 #   which says how to compile a .cc file into a .o file.  This is a copy
 #   of COMPILE_CXX_CMDS, with edits.  The GNU Make per-target variables
 #   have been changed to target-specific global variables.
-
+#
 #   USE WITH EVAL
 #
 define ADD_COMPILE_RULE.cxx
