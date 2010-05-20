@@ -108,11 +108,13 @@ endef
 define ADD_RELINK_RULE.exe
     ${1}: $${${1}_BUILD}/$${${1}_RELINK}
 
+    ${1}_R_PRLIBS := $$(subst /lib/,/lib/relink/,$${${1}_PRLIBS})
+
     # used to fix up RPATH for ${1} on install.
-    $${${1}_BUILD}/$${${1}_RELINK}: $${${1}_OBJS} $${${1}_PRBIN} $${${1}_PRLIBS}
-	    @$(strip mkdir -p $(dir $${${1}_BUILD}/$${${1}_RELINK}))
-	    $${${1}_LINKER} -o $${${1}_BUILD}/$${${1}_RELINK} $${RPATH_FLAGS} $${LDFLAGS} \
-                $${${1}_LDFLAGS} $${${1}_OBJS} $${${1}_PRLIBS} \
+    $${${1}_BUILD}/$${${1}_RELINK}: $${${1}_OBJS} $${${1}_PRBIN} $${${1}_R_PRLIBS}
+	    @$(strip mkdir -p $$(dir $${${1}_BUILD}/$${${1}_RELINK}))
+	    $${${1}_LINKER} -o $${${1}_BUILD}/$${${1}_RELINK} $${RELINK_FLAGS} $${LDFLAGS} \
+                $${${1}_LDFLAGS} $${${1}_OBJS} $${${1}_R_PRLIBS} \
                 $${LDLIBS} $${${1}_LDLIBS}
 	    $${${1}_POSTMAKE}
 endef
@@ -123,14 +125,12 @@ endef
 #   USE WITH EVAL
 #
 define ADD_RELINK_RULE.la
-$$(info RELINK ${1}: $${${1}_BUILD}/$${${1}_RELINK})
-
     ${1}: $${${1}_BUILD}/$${${1}_RELINK}
 
     # used to fix up RPATH for ${1} on install.
     $${${1}_BUILD}/$${${1}_RELINK}: $${${1}_OBJS} $${${1}_PREREQS}
-	    @$(strip mkdir -p $(dir $${${1}_BUILD}/$${${1}_RELINK}))
-	    $${${1}_LINKER} -o $${${1}_BUILD}/$${${1}_RELINK} $${RPATH_FLAGS} $${LDFLAGS} \
+	    @$(strip mkdir -p $$(dir $${${1}_BUILD}/$${${1}_RELINK}))
+	    $${${1}_LINKER} -o $${${1}_BUILD}/$${${1}_RELINK} $${RELINK_FLAGS} $${LDFLAGS} \
                 $${${1}_LDFLAGS} $${${1}_OBJS} $${LDLIBS} $${${1}_LDLIBS}
 	    $${${1}_POSTMAKE}
 
