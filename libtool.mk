@@ -108,6 +108,11 @@ ifneq "${libdir}" ""
     endif
 endif
 
+# Default to building static libraries, too.
+ifneq "${bm_static_libs}" "no"
+    bm_static_libs := yes
+endif
+
 # Check if we build shared libraries.
 ifeq "${bm_shared_libs}" "yes"
     # RPATH  : flags use to build executables that can be run
@@ -116,7 +121,16 @@ ifeq "${bm_shared_libs}" "yes"
     #          with no dependency on the source. 
     RPATH_FLAGS := -rpath $(abspath ${BUILD_DIR})/lib/.libs -rdynamic
     RELINK_FLAGS := -rpath ${libdir} -rdynamic
+
+    ifneq "${bm_static_libs}" "yes"
+        RPATH_FLAGS += --shared
+        RELINK_FLAGS += --shared
+    endif
 else
+    ifneq "${bm_static_libs}" "yes"
+        $(error Building without static libraries requires you to set 'INSTALL' or 'libdir')
+    endif
+
     RPATH_FLAGS := -static
 endif
 
