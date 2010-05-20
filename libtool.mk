@@ -100,10 +100,16 @@ define ADD_TARGET_RULE.la
 
 endef
 
-# If we're using LIBTOOL *and* an installation directory is defined,
-# then libtool can build dynamic libraries.  Otherwise, build static
-# libraries.
+# By default, if libdir is defined, we build shared libraries.
+# However, we can disable shared libraries if explicitly told to.
 ifneq "${libdir}" ""
+    ifneq "bm_shared_libs" "no"
+        bm_shared_libs := yes
+    endif
+endif
+
+# Check if we build shared libraries.
+ifeq "${bm_shared_libs}" "yes"
     # RPATH  : flags use to build executables that can be run
     #          from the build directory / source tree.
     # RELINK : flags use to build executables that are installed,
