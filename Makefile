@@ -500,8 +500,8 @@ clean:
 
 top_makedir := $(dir $(lastword ${MAKEFILE_LIST}))
 
--include ${top_makedir}/libtool.mk
 -include ${top_makedir}/install.mk
+-include ${top_makedir}/libtool.mk
 -include ${top_makedir}/legacy.mk
 
 # Include the main user-supplied submakefile. This also recursively includes

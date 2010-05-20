@@ -100,6 +100,42 @@ define ADD_TARGET_RULE.la
 
 endef
 
+# ADD_RELINK_RULE.exe - Parametric "function" that adds a rule to relink
+#   the target before installation, so that the paths are correct.
+#
+#   USE WITH EVAL
+#
+define ADD_RELINK_RULE.exe
+    ${1}: $${${1}_BUILD}/$${${1}_RELINK}
+
+    # used to fix up RPATH for ${1} on install.
+    $${${1}_BUILD}/$${${1}_RELINK}: $${${1}_OBJS} $${${1}_PRBIN} $${${1}_PRLIBS}
+	    @$(strip mkdir -p $(dir $${${1}_BUILD}/$${${1}_RELINK}))
+	    $${${1}_LINKER} -o $${${1}_BUILD}/$${${1}_RELINK} $${RPATH_FLAGS} $${LDFLAGS} \
+                $${${1}_LDFLAGS} $${${1}_OBJS} $${${1}_PRLIBS} \
+                $${LDLIBS} $${${1}_LDLIBS}
+	    $${${1}_POSTMAKE}
+endef
+
+# ADD_RELINK_RULE.la - Parametric "function" that adds a rule to relink
+#   the target before installation, so that the paths are correct.
+#
+#   USE WITH EVAL
+#
+define ADD_RELINK_RULE.la
+$$(info RELINK ${1}: $${${1}_BUILD}/$${${1}_RELINK})
+
+    ${1}: $${${1}_BUILD}/$${${1}_RELINK}
+
+    # used to fix up RPATH for ${1} on install.
+    $${${1}_BUILD}/$${${1}_RELINK}: $${${1}_OBJS} $${${1}_PREREQS}
+	    @$(strip mkdir -p $(dir $${${1}_BUILD}/$${${1}_RELINK}))
+	    $${${1}_LINKER} -o $${${1}_BUILD}/$${${1}_RELINK} $${RPATH_FLAGS} $${LDFLAGS} \
+                $${${1}_LDFLAGS} $${${1}_OBJS} $${LDLIBS} $${${1}_LDLIBS}
+	    $${${1}_POSTMAKE}
+
+endef
+
 # By default, if libdir is defined, we build shared libraries.
 # However, we can disable shared libraries if explicitly told to.
 ifneq "${libdir}" ""
@@ -149,6 +185,10 @@ define ADD_LIBTOOL_SUFFIX
         $${TGT}_NOLIBTOOL := $${TGT_NOLIBTOOL}
     endif
 
+    ifneq "$${RELINK_FLAGS}" ""
+        $${TGT}_RELINK := relink/$${TGT}
+    endif
+
     # re-write all of the dependencies to have the libtool endings.
     TGT_PREREQS := $$(call LIBTOOL_ENDINGS,$${TGT_PREREQS})
 endef
@@ -167,6 +207,13 @@ define ADD_LIBTOOL_TARGET
     ifneq "$${$${TGT}_NOLIBTOOL}" ""
         $$(notdir $${$${TGT}_NOLIBTOOL}): $${TGT}
     endif
+
+    # If we need to relink, add the relink targets now.
+    ifneq "$${$${TGT}_RELINK}" ""
+        # add rules to relink the target
+        $$(eval $$(call ADD_RELINK_RULE$${$${TGT}_SUFFIX},$${TGT}))
+    endif
+
 endef
 
 

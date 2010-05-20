@@ -22,11 +22,9 @@
 #   If we're using libtool, INSTALL_NAME is already defined to point to
 #   the RELINK version.  So don't re-define it here.
 #
-ifeq "${INSTALL_NAME}" ""
 define INSTALL_NAME
 ${1}
 endef
-endif
 
 # ADD_INSTALL_DIR - Parameterized "function" that adds a new target
 #   which installs a directory.
