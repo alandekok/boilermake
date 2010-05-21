@@ -108,8 +108,6 @@ endef
 define ADD_RELINK_RULE.exe
     ${1}: $${${1}_BUILD}/$${${1}_RELINK}
 
-    ${1}_R_PRLIBS := $$(subst /lib/,/lib/relink/,$${${1}_PRLIBS})
-
     # used to fix up RPATH for ${1} on install.
     $${${1}_BUILD}/$${${1}_RELINK}: $${${1}_OBJS} $${${1}_PRBIN} $${${1}_R_PRLIBS}
 	    @$(strip mkdir -p $$(dir $${${1}_BUILD}/$${${1}_RELINK}))
@@ -211,6 +209,9 @@ define ADD_LIBTOOL_TARGET
     # If we need to relink, add the relink targets now.
     ifneq "$${$${TGT}_RELINK}" ""
         # add rules to relink the target
+
+        $${TGT}_R_PRLIBS := $$(subst /lib/,/lib/relink/,$${$${TGT}_PRLIBS})
+
         $$(eval $$(call ADD_RELINK_RULE$${$${TGT}_SUFFIX},$${TGT}))
     endif
 
