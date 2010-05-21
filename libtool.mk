@@ -31,7 +31,7 @@ ifeq "${LIBTOOL}" "JLIBTOOL"
     # include referencing ${LIBTOOL}, as we don't have a jlibtool
     # binary!
     jlibtool ${JLIBTOOL}: ${top_makedir}/jlibtool.c
-	@mkdir -p $(dir $@)
+	@mkdir -p $(dir ${JLIBTOOL})
 	${CC} $< -o ${JLIBTOOL}
 
     clean: jlibtool_clean
