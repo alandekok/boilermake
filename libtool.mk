@@ -56,12 +56,12 @@ clean: .libs_clean
 
 # Re-define compilers and linkers
 #
-OBJ_EXT := lo
-COMPILE.c := ${LIBTOOL} --mode=compile ${CC}
-COMPILE.cxx := ${LIBTOOL} --mode=compile ${CXX}
-LINK.c := ${LIBTOOL} --mode=link ${CC}
-LINK.cxx := ${LIBTOOL} --mode=link ${CXX}
-PROGRAM_INSTALL := ${LIBTOOL} --mode=install ${INSTALL}
+OBJ_EXT = lo
+COMPILE.c = ${LIBTOOL} --mode=compile ${CC}
+COMPILE.cxx = ${LIBTOOL} --mode=compile ${CXX}
+LINK.c = ${LIBTOOL} --mode=link ${CC}
+LINK.cxx = ${LIBTOOL} --mode=link ${CXX}
+PROGRAM_INSTALL = ${LIBTOOL} --mode=install ${INSTALL}
 
 
 # INSTALL_NAME - Function to return the name of the file which should
