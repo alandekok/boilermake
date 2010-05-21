@@ -39,6 +39,7 @@ define ADD_CLEAN_RULE
     clean_$(notdir ${1}):
 	$$(strip rm -f ${1} ${${1}_NOLIBTOOL} $${${1}_OBJS} $${${1}_DEPS} $${${1}_OBJS:%.${OBJ_EXT}=%.[do]}) $(if ${TARGET_DIR},$${TARGET_DIR}/$(notdir ${1}))
 	$${${1}_POSTCLEAN}
+
 endef
 
 # FILTER_DEPENDS: function to turn a *.d file into a *.mk file.
