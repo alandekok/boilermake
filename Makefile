@@ -392,14 +392,14 @@ define INCLUDE_SUBMAKEFILE
         # add rules to build the target
         $$(eval $$(call ADD_TARGET_RULE$${$${TGT}_SUFFIX},$${TGT}))
 
-        # "hook" for legacy Makefiles
-        $$(eval $$(call ADD_LEGACY_RULE,$${TGT}))
-
         # generate the clean rule for this target.
         $$(eval $$(call ADD_CLEAN_RULE,$${TGT}))
 
         # Hook to add an installation target
         $$(eval $$(call ADD_INSTALL_TARGET,$${TGT}))
+
+        # "hook" for legacy Makefiles
+        $$(eval $$(call ADD_LEGACY_RULE,$${TGT}))
     endif
 
     TGT := $$(call PEEK,$${TGT_STACK})

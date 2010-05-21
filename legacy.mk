@@ -62,7 +62,7 @@ define ADD_LEGACY_RULE
     # We also remove leading spaces, and convert raw "build" to "${BUILD}"
     $${${1}_LEGACY}: $${${1}_MAKEFILES}
 	@mkdir -p $$(dir $$@)
-	@${MAKE} -s LEGACY=yes ${1} | sed \
+	${MAKE} -s LEGACY=yes INSTALL=${INSTALL} ${1} | sed \
 		-e 's/^ *//' \
 		-e 's, $${BUILD_DIR}, $$$${BUILD_DIR},g' > $$@
 
@@ -89,12 +89,15 @@ define ADD_LEGACY_RULE
             $$(info $$(call ADD_TARGET_RULE$${${1}_SUFFIX},${1}))
             $$(info )
             $$(info $$(call ADD_RELINK_RULE$${${1}_SUFFIX},${1}))
+
+            ifneq "$$(filter-out $${ALL_LEGACY_INSTALLDIRS},$${${1}_INSTALLDIR})" ""
+                $$(info )
+                $$(info $$(call ADD_INSTALL_DIR,$$$${${1}_INSTALLDIR}))
+                ALL_LEGACY_INSTALLDIRS := $${${1}_INSTALLDIR}
+            endif
+
             $$(info )
             $$(info $$(call ADD_INSTALL_RULE$${${1}_SUFFIX},${1}))
-
-            ifneq "$$(filter-out $${ALL_INSTALLDIRS},$${${1}_INSTALLDIR})" ""
-                $$(info $$(call ADD_INSTALL_DIR,$${${1}_INSTALLDIR}))
-            endif
 
             $$(info # When using libtool, relink with installed libdir before installation)
             $$(info $$(call ADD_CLEAN_RULE,${1}))
@@ -189,7 +192,7 @@ endef
 .PHONY: ${MAKE_DIR}/defs.mk
 ${MAKE_DIR}/defs.mk:
 	@mkdir -p $(dir $$@)
-	@${MAKE} -s LEGACY=yes defs.mk | sed 's/^ *//' > $@
+	@${MAKE} -s LEGACY=yes INSTALL=${INSTALL} defs.mk | sed 's/^ *//' > $@
 
 # If we're building a Makefile, have an empty target so that Make doesn't
 # complain, and then do the real work in a macro.
@@ -204,7 +207,7 @@ defs.mk:
             $(foreach x, CC CXX CPP CFLAGS CXXFLAGS LDFLAGS LDLIBS  \
                           DEFS INCDIRS MAN BUILD_DIR TARGET_DIR OBJ_EXT \
                           LIBTOOL RELINK COMPILE.c COMPILE.cxx \
-                          LINK.c LINK.cxx PROGRAM_INSTALL \
+                          LINK.c LINK.cxx INSTALL PROGRAM_INSTALL \
                           prefix exec_prefix bindir sbindir libdir sysconfdir \
                           localstatedir datadir mandir docdir logdir \
                           includedir top_makedir CPP_MAKEDEPEND,\

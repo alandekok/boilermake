@@ -137,11 +137,11 @@ define ADD_INSTALL_TARGET
 
     # add rules to install the target
     ifneq "$${${1}_INSTALLDIR}" ""
-        $$(eval $$(call ADD_INSTALL_RULE$${${1}_SUFFIX},${1}))
-
         ifneq "$$(filter-out $${ALL_INSTALLDIRS},$${${1}_INSTALLDIR})" ""
             $$(eval $$(call ADD_INSTALL_DIR,$${${1}_INSTALLDIR}))
         endif
+
+        $$(eval $$(call ADD_INSTALL_RULE$${${1}_SUFFIX},${1}))
     endif
 
     # add rules to install the MAN pages.
