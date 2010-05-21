@@ -74,8 +74,8 @@ define ADD_LEGACY_RULE
             $$(info # Variable definitions)
             $$(foreach x, CFLAGS CXXFLAGS SOURCES DEPS DEFS INCDIRS OBJS \
                           LDFLAGS LDLIBS POSTMAKE LINKER POSTCLEAN INSTALLDIR \
-                          POSTINSTALL PREREQS RPATHREQS RPATHLIBS MAN \
-                          RELINK PRLIBS PRBIN BUILD,\
+                          POSTINSTALL PREREQS MAN BUILD PRBIN PRLIBS \
+                          R_PRLIBS RELINK,\
                 $$(info ${1}_$${x} := $${${1}_$${x}}))
 
             ifneq "$$(words $${$${1}_MAKEDIRS})" "1"
@@ -88,6 +88,8 @@ define ADD_LEGACY_RULE
             $$(info $$(call ADD_TARGET_TO_ALL,${1}))
             $$(info $$(call ADD_TARGET_RULE$${${1}_SUFFIX},${1}))
             $$(info )
+            $$(info $$(call ADD_RELINK_RULE$${${1}_SUFFIX},${1}))
+            $$(info # When using libtool, relink with installed libdir before installation)
             $$(info $$(call ADD_CLEAN_RULE,${1}))
 
             $$(info )
@@ -189,15 +191,17 @@ ifneq "${LEGACY}" ""
 defs.mk:
 
     ifeq "${LEGACY}" "yes"
+        CPP_MAKEDEPEND := yes
         ifeq "${MAKECMDGOALS}" "defs.mk"
             $(info # Variable definitions)
-            $(foreach x, CFLAGS CXXFLAGS DEFS INCDIRS LDFLAGS LDLIBS  \
-                          MAN BUILD_DIR TARGET_DIR OBJ_EXT \
-                          COMPILE.c COMPILE.cxx CPP LIBTOOL \
+            $(foreach x, CC CXX CPP CFLAGS CXXFLAGS LDFLAGS LDLIBS  \
+                          DEFS INCDIRS MAN BUILD_DIR TARGET_DIR OBJ_EXT \
+                          LIBTOOL COMPILE.c COMPILE.cxx \
+                          LINK.c LINK.cxx PROGRAM_INSTALL \
                           prefix exec_prefix bindir sbindir libdir sysconfdir \
                           localstatedir datadir mandir docdir logdir \
-                          includedir,\
-                $(info ${x} := ${${x}}))
+                          includedir top_makedir CPP_MAKEDEPEND,\
+                $(info ${x} := $(value ${x})))
         endif
     endif
 endif
