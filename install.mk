@@ -15,17 +15,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# INSTALL_NAME - Function to return the name of the file which should
-#   be installed.  For non-libtool builds, it's just the name of the
-#   file (executable or library).
-#
-#   If we're using libtool, INSTALL_NAME is already defined to point to
-#   the RELINK version.  So don't re-define it here.
-#
-define INSTALL_NAME
-${1}
-endef
-
 # ADD_INSTALL_DIR - Parameterized "function" that adds a new target
 #   which installs a directory.
 #
@@ -63,8 +52,8 @@ define ADD_INSTALL_RULE.exe
     install: $${${1}_INSTALLDIR}/$(notdir ${1})
 
     # Install executable ${1}
-    $${${1}_INSTALLDIR}/$(notdir ${1}): $$(call INSTALL_NAME,${1}) $${${1}_INSTALLDIR}
-	$${PROGRAM_INSTALL} -c -m 755 $${BUILD_DIR}/bin/$$(call INSTALL_NAME,${1}) $${${1}_INSTALLDIR}/
+    $${${1}_INSTALLDIR}/$(notdir ${1}): $${RELINK}${1} $${${1}_INSTALLDIR}
+	$${PROGRAM_INSTALL} -c -m 755 $${BUILD_DIR}/bin/$${RELINK}${1} $${${1}_INSTALLDIR}/
 	$${${1}_POSTINSTALL}
 
 endef
@@ -102,8 +91,8 @@ define ADD_INSTALL_RULE.la
     install: $${${1}_INSTALLDIR}/$(notdir ${1})
 
     # Install libtool library ${1}
-    $${${1}_INSTALLDIR}/$(notdir ${1}): $$(call INSTALL_NAME,${1}) $${${1}_INSTALLDIR}
-	$${PROGRAM_INSTALL} -c -m 755 $${BUILD_DIR}/lib/$$(call INSTALL_NAME,${1}) $${${1}_INSTALLDIR}/
+    $${${1}_INSTALLDIR}/$(notdir ${1}): $${RELINK}${1} $${${1}_INSTALLDIR}
+	$${PROGRAM_INSTALL} -c -m 755 $${BUILD_DIR}/lib/$${RELINK}${1} $${${1}_INSTALLDIR}/
 	$${${1}_POSTINSTALL}
 
 endef

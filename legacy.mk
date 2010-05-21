@@ -89,6 +89,13 @@ define ADD_LEGACY_RULE
             $$(info $$(call ADD_TARGET_RULE$${${1}_SUFFIX},${1}))
             $$(info )
             $$(info $$(call ADD_RELINK_RULE$${${1}_SUFFIX},${1}))
+            $$(info )
+            $$(info $$(call ADD_INSTALL_RULE$${${1}_SUFFIX},${1}))
+
+            ifneq "$$(filter-out $${ALL_INSTALLDIRS},$${${1}_INSTALLDIR})" ""
+                $$(info $$(call ADD_INSTALL_DIR,$${${1}_INSTALLDIR}))
+            endif
+
             $$(info # When using libtool, relink with installed libdir before installation)
             $$(info $$(call ADD_CLEAN_RULE,${1}))
 
@@ -196,7 +203,7 @@ defs.mk:
             $(info # Variable definitions)
             $(foreach x, CC CXX CPP CFLAGS CXXFLAGS LDFLAGS LDLIBS  \
                           DEFS INCDIRS MAN BUILD_DIR TARGET_DIR OBJ_EXT \
-                          LIBTOOL COMPILE.c COMPILE.cxx \
+                          LIBTOOL RELINK COMPILE.c COMPILE.cxx \
                           LINK.c LINK.cxx PROGRAM_INSTALL \
                           prefix exec_prefix bindir sbindir libdir sysconfdir \
                           localstatedir datadir mandir docdir logdir \

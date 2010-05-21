@@ -64,17 +64,6 @@ LINK.cxx = ${LIBTOOL} --mode=link ${CXX}
 PROGRAM_INSTALL = ${LIBTOOL} --mode=install ${INSTALL}
 
 
-# INSTALL_NAME - Function to return the name of the file which should
-#   be installed.  For libtool builds, the "normal" target has had
-#   RPATH set up to allow binaries to be run out of the TARGET_DIR.
-#   We can't install these binaries, as they refer to the source tree.
-#   Therefore, we make the installation depend on a separate target,
-#   which has the correct installation RPATH, and is located in the
-#   BUILD_DIR.
-define INSTALL_NAME
-${${1}_RELINK}
-endef
-
 # LIBTOOL_ENDINGS - Given a library ending in ".a" or ".so", replace that
 #   extension with ".la".
 #
@@ -155,6 +144,7 @@ ifeq "${bm_shared_libs}" "yes"
     #          with no dependency on the source. 
     RPATH_FLAGS := -rpath $(abspath ${BUILD_DIR})/lib/.libs -rdynamic
     RELINK_FLAGS := -rpath ${libdir} -rdynamic
+    RELINK := relink/
 
     ifneq "${bm_static_libs}" "yes"
         RPATH_FLAGS += --shared
@@ -184,7 +174,7 @@ define ADD_LIBTOOL_SUFFIX
     endif
 
     ifneq "$${RELINK_FLAGS}" ""
-        $${TGT}_RELINK := relink/$${TGT}
+        $${TGT}_RELINK := ${RELINK}$${TGT}
     endif
 
     # re-write all of the dependencies to have the libtool endings.
