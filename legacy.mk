@@ -118,6 +118,17 @@ endef
 ALL_LEGACYMK :=
 MAKE_DIR := ${BUILD_DIR}/make
 
+# Define a special variable that prevents the main Makefile from
+# expanding variables at "eval" time.  Instead, the variables are left
+# as a reference to other variables.  We can't do this all of the time,
+# as it would cause the normal Make to run programs like ${foo}, instead
+# of using the value of "foo".  But we *can* assign "bar := ${foo}" in
+# a legacy Makefile, and then use it in a Makefile rule to run ${bar}.
+#
+ifeq "${LEGACY}" "yes"
+    LL := $$
+endif
+
 # LEGACY_FILTER_DEPENDS - Parameterized "function" that filters the
 #  dependencies.  It is a copy of FILTER_DEPENDS, with $$* changed to
 #  $(basename ${1}) for portability.  The BSD Make treats $* as the
