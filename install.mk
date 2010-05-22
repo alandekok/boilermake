@@ -133,7 +133,7 @@ define ADD_INSTALL_TARGET
         endif
     endif
 
-    ${1}_INSTALLDIR := $${DESTDIR}$${TGT_INSTALLDIR}
+    ${1}_INSTALLDIR := ${LL}$${DESTDIR}$${TGT_INSTALLDIR}
 
     # add rules to install the target
     ifneq "$${${1}_INSTALLDIR}" ""
