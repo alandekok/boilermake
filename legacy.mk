@@ -192,7 +192,9 @@ endef
 .PHONY: ${MAKE_DIR}/defs.mk
 ${MAKE_DIR}/defs.mk:
 	@mkdir -p $(dir $$@)
-	@${MAKE} -s LEGACY=yes INSTALL=${INSTALL} defs.mk | sed 's/^ *//' > $@
+	@${MAKE} -s LEGACY=yes INSTALL=${INSTALL} defs.mk | sed \
+		-e 's/^ *//' \
+		-e 's, ${BUILD_DIR}/, $${BUILD_DIR}/,g' > $@
 
 # If we're building a Makefile, have an empty target so that Make doesn't
 # complain, and then do the real work in a macro.
