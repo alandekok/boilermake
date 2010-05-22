@@ -21,7 +21,7 @@ ifneq "${LIBTOOL}" ""
 #   to build it.
 
 ifeq "${LIBTOOL}" "JLIBTOOL"
-    JLIBTOOL := $(abspath ${BUILD_DIR}/make/jlibtool)
+    JLIBTOOL := ${BUILD_DIR}/make/jlibtool
 
     # Add a rule to build jlibtool BEFORE any other targets.  This
     # means that we can use it to build the later targets.
