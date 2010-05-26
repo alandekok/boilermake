@@ -60,7 +60,11 @@ endef
 #	Replace ".o" with "${OBJ_EXT}"
 #	delete empty continuation lines
 #	delete blank lines
-#	replace "build/" with "${BUILD_DIR}/"
+#	replace "build/" with "${BUILD_DIR}/" when it's at the start of a line
+#	delete references to ${BUILD_DIR}/make/include, the "config.mk"
+#	file adds these dependencies automatically.
+#	replace "build/" with "${BUILD_DIR}/" when it's in the middle of a line
+#	
 #	remove sequential duplicate lines
 #	
 #  2) Create empty dependencies from the files
@@ -82,6 +86,8 @@ define FILTER_DEPENDS
 	  -e 's/\.o: /.$$$${OBJ_EXT}: /' \
 	  -e '/^ *\\$$$$/ d' \
 	  -e 's,^$${BUILD_DIR},$$$${BUILD_DIR},' \
+	  -e 's, $${BUILD_DIR}/make/include/[^ :]*,,' \
+	  -e 's, $${BUILD_DIR}, $$$${BUILD_DIR},' \
 	  -e '/^$$$$/ d' \
 	  < $${BUILD_DIR}/objs/$$*.d | sed -e '$$$$!N; /^\(.*\)\n\1$$$$/!P; D' \
 	  >  $${BUILD_DIR}/make/src/$$*.mk
@@ -89,6 +95,7 @@ define FILTER_DEPENDS
 	  -e 's, /[^: ]*,,g' \
 	  -e 's,^ *[^:]* *: *$$$$,,' \
 	  -e '/: </ d' \
+	  -e 's, $${BUILD_DIR}/make/include/[^ :]*,,' \
 	  -e 's/^[^:]*: *//' \
 	  -e 's/ *\\$$$$//' \
 	  -e '/^$$$$/ d' \
@@ -256,6 +263,8 @@ define INCLUDE_SUBMAKEFILE
     TGT_PREREQS :=
     TGT_POSTINSTALL :=
     TGT_INSTALLDIR := ..
+    TGT_CHECK_HEADERS :=
+    TGT_CHECK_LIBS :=
 
     SOURCES :=
     SRC_CFLAGS :=
@@ -309,6 +318,8 @@ define INCLUDE_SUBMAKEFILE
         $${TGT}_SUFFIX := $$(if $$(suffix $${TGT}),$$(suffix $${TGT}),.exe)
         $${TGT}_BUILD := $$(if $$(suffix $${TGT}),$${BUILD_DIR}/lib,$${BUILD_DIR}/bin)
         $${TGT}_MAKEFILES += ${1}
+        $${TGT}_CHECK_HEADERS := $${TGT_CHECK_HEADERS}
+        $${TGT}_CHECK_LIBS := $${TGT_CHECK_LIBS}
     else
         # The values defined by this makefile apply to the the "current" target
         # as determined by which target is at the top of the stack.
@@ -397,6 +408,9 @@ define INCLUDE_SUBMAKEFILE
 
         # Hook to add an installation target
         $$(eval $$(call ADD_INSTALL_TARGET,$${TGT}))
+
+        # Hook to add a configuration target
+        $$(eval $$(call ADD_TARGET_CONFIG,$${TGT}))
 
         # "hook" for legacy Makefiles
         $$(eval $$(call ADD_LEGACY_RULE,$${TGT}))
@@ -503,6 +517,7 @@ top_makedir := $(dir $(lastword ${MAKEFILE_LIST}))
 
 -include ${top_makedir}/install.mk
 -include ${top_makedir}/libtool.mk
+-include ${top_makedir}/config.mk
 -include ${top_makedir}/legacy.mk
 
 # Include the main user-supplied submakefile. This also recursively includes
