@@ -81,8 +81,15 @@ define CHECK_LIBRARY_RULE
 
 endef
 
+# Empty target so that we can build config.h even if there are
+# no configure checks.
+${BUILD_DIR}/make/include/empty.h:
+	@mkdir -p $(dir $@)
+	@touch $@
+
 # Global include configuration depends on all of the config files
-${BUILD_DIR}/make/include/config.h:
+${BUILD_DIR}/make/include/config.h: ${BUILD_DIR}/make/include/empty.h
+	@mkdir -p $(dir $@)
 	@cat $^ > $@
 
 # Global make configuration depends on all of the config files
