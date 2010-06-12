@@ -69,6 +69,7 @@ define CHECK_LIBRARY_RULE
     $${BUILD_DIR}/make/defs/lib${1}.mk: $${BUILD_DIR}/make/include/ac_lib${1}.h
 	@$(strip mkdir -p $$(dir $$@))
 	@sed -e 's/#define /AC_/' -e 's/ 1/ = 1/' < $$< > $$@
+	@echo '${1}_LDFLAGS := -l${1}' >> $$@
 
     # include the generated Makefile, so that it is built *before*
     # any targets, and so that we have the resulting definitions during
