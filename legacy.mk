@@ -97,6 +97,10 @@ define ADD_LEGACY_RULE
             endif
 
             $$(info )
+            $$(info # Hook to add a configuration target)
+            $$(info $$(call ADD_TARGET_CONFIG,${1}))
+
+            $$(info )
             $$(info $$(call ADD_INSTALL_RULE$${${1}_SUFFIX},${1}))
 
             $$(info # When using libtool, relink with installed libdir before installation)
