@@ -93,12 +93,14 @@ define ADD_LEGACY_RULE
             ifneq "$$(filter-out $${ALL_LEGACY_INSTALLDIRS},$${${1}_INSTALLDIR})" ""
                 $$(info )
                 $$(info $$(call ADD_INSTALL_DIR,$$$${${1}_INSTALLDIR}))
-                ALL_LEGACY_INSTALLDIRS := $${${1}_INSTALLDIR}
+                ALL_LEGACY_INSTALLDIRS += $${${1}_INSTALLDIR}
             endif
 
-            $$(info )
-            $$(info # Hook to add a configuration target)
-            $$(info $$(call ADD_TARGET_CONFIG,${1}))
+            ifneq "$${ALL_CHECK_HEADERS}$${ALL_CHECK_LIBS}" ""
+                $$(info )
+                $$(info # Hook to add a configuration target)
+                $$(info $$(call ADD_TARGET_CONFIG,${1}))
+            endif
 
             $$(info )
             $$(info $$(call ADD_INSTALL_RULE$${${1}_SUFFIX},${1}))
