@@ -62,7 +62,7 @@ define ADD_LEGACY_RULE
     # We also remove leading spaces, and convert raw "build" to "${BUILD}"
     $${${1}_LEGACY}: $${${1}_MAKEFILES}
 	@mkdir -p $$(dir $$@)
-	${MAKE} -s LEGACY=yes INSTALL=${INSTALL} ${1} | sed \
+	@${MAKE} -s LEGACY=yes INSTALL=${INSTALL} ${1} | sed \
 		-e 's/^ *//' \
 		-e 's, $${BUILD_DIR}, $$$${BUILD_DIR},g' > $$@
 
@@ -89,12 +89,6 @@ define ADD_LEGACY_RULE
             $$(info $$(call ADD_TARGET_RULE$${${1}_SUFFIX},${1}))
             $$(info )
             $$(info $$(call ADD_RELINK_RULE$${${1}_SUFFIX},${1}))
-
-            ifneq "$$(filter-out $${ALL_LEGACY_INSTALLDIRS},$${${1}_INSTALLDIR})" ""
-                $$(info )
-                $$(info $$(call ADD_INSTALL_DIR,$$$${${1}_INSTALLDIR}))
-                ALL_LEGACY_INSTALLDIRS += $${${1}_INSTALLDIR}
-            endif
 
             ifneq "$${ALL_CHECK_HEADERS}$${ALL_CHECK_LIBS}" ""
                 $$(info )

@@ -15,23 +15,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# ADD_INSTALL_DIR - Parameterized "function" that adds a new target
-#   which installs a directory.
-#
-#   USE WITH EVAL
-#
-define ADD_INSTALL_DIR
-    ALL_INSTALLDIRS += ${1}
-
-    # Global "install directories" rule depends on this directory.
-    installdirs: ${1}
-
-    .PHONY: ${1}
-    ${1}:
-	$${PROGRAM_INSTALL} -d -m 755 ${1}
-endef
-
-
 # ADD_INSTALL_RULE.* - Parameterized "functions" that adds a new
 #   installation to the Makefile.  There should be one ADD_INSTALL_RULE
 #   definition for each type of target that is used in the build.
@@ -52,7 +35,8 @@ define ADD_INSTALL_RULE.exe
     install: $${${1}_INSTALLDIR}/$(notdir ${1})
 
     # Install executable ${1}
-    $${${1}_INSTALLDIR}/$(notdir ${1}): $${${1}_BUILD}/$${RELINK}${1} $${${1}_INSTALLDIR}
+    $${${1}_INSTALLDIR}/$(notdir ${1}): $${${1}_BUILD}/$${RELINK}${1}
+	$${PROGRAM_INSTALL} -d -m 755 $${${1}_INSTALLDIR}
 	$${PROGRAM_INSTALL} -c -m 755 $${BUILD_DIR}/bin/$${RELINK}${1} $${${1}_INSTALLDIR}/
 	$${${1}_POSTINSTALL}
 
@@ -70,7 +54,8 @@ define ADD_INSTALL_RULE.a
     install: $${${1}_INSTALLDIR}/$(notdir ${1})
 
     # Install static library ${1}
-    $${${1}_INSTALLDIR}/$(notdir ${1}): ${1} $${${1}_INSTALLDIR}
+    $${${1}_INSTALLDIR}/$(notdir ${1}): ${1}
+	$${PROGRAM_INSTALL} -d -m 755 $${${1}_INSTALLDIR}
 	$${PROGRAM_INSTALL} -c -m 755 $${BUILD_DIR}/lib/${1} $${${1}_INSTALLDIR}/
 	$${${1}_POSTINSTALL}
 
@@ -91,7 +76,8 @@ define ADD_INSTALL_RULE.la
     install: $${${1}_INSTALLDIR}/$(notdir ${1})
 
     # Install libtool library ${1}
-    $${${1}_INSTALLDIR}/$(notdir ${1}): $${${1}_BUILD}/$${RELINK}${1} $${${1}_INSTALLDIR}
+    $${${1}_INSTALLDIR}/$(notdir ${1}): $${${1}_BUILD}/$${RELINK}${1}
+	$${PROGRAM_INSTALL} -d -m 755 $${${1}_INSTALLDIR}
 	$${PROGRAM_INSTALL} -c -m 755 $${BUILD_DIR}/lib/$${RELINK}${1} $${${1}_INSTALLDIR}/
 	$${${1}_POSTINSTALL}
 
@@ -137,10 +123,6 @@ define ADD_INSTALL_TARGET
 
     # add rules to install the target
     ifneq "$${${1}_INSTALLDIR}" ""
-        ifneq "$$(filter-out $${ALL_INSTALLDIRS},$${${1}_INSTALLDIR})" ""
-            $$(eval $$(call ADD_INSTALL_DIR,$${${1}_INSTALLDIR}))
-        endif
-
         $$(eval $$(call ADD_INSTALL_RULE$${${1}_SUFFIX},${1}))
     endif
 
@@ -163,7 +145,6 @@ endef
 install:
 
 ALL_INSTALL :=
-ALL_INSTALLDIRS :=
 
 # Define reasonable defaults for all of the installation directories.
 # The user can over-ride these, but these are the defaults.
@@ -214,7 +195,7 @@ endif
 # We also want to uninstall only when there are "install_foo" targets.
 .PHONY: uninstall
 uninstall:
-	$(if ${ALL_INSTALL},rm -f ${ALL_INSTALL})
+	@rm -f ${ALL_INSTALL} ./.no_such_file
 
 # Wrapper around INSTALL
 ifeq "${PROGRAM_INSTALL}" ""
